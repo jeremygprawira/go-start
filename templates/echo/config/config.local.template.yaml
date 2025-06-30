@@ -1,0 +1,29 @@
+postgresql:
+  user: ""
+  password: ""
+  host: ""
+  name: ""
+  port:
+  ssl_mode: ""
+app:
+  name: "GO-COMMUNITY"
+  port: ""
+  version: ""
+  environment: ""
+  host: ""
+  timeout: 120s
+  log_option:
+  log_level:
+google:
+  client_id: ""
+  client_secret: ""
+  redirect: ""
+  state: ""
+auth:
+  bearer_secret: ""
+  bearer_duration: ""
+  api_key:
+  refresh_secret:
+  refresh_expiry:
+hash:
+  salt: ""

@@ -1,4 +1,4 @@
-# 🚀 go-start
+# (IN PROGRESS) 🚀 go-start
 
 A CLI tool to scaffold clean, production-ready Go backend projects using your choice of:
 

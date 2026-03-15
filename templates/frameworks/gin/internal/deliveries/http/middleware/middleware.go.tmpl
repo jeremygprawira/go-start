@@ -1,0 +1,40 @@
+package middleware
+
+import (
+	"net/http"
+
+	"[[.ModuleName]]/internal/config"
+	"github.com/gin-gonic/gin"
+)
+
+func APIKeyMiddleware(cfg *config.Configuration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.GetHeader("X-API-Key")
+		if key != cfg.Authorization.APIKey {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "invalid or missing API key"})
+			return
+		}
+		c.Next()
+	}
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-API-Key")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
+}
+
+func LoggerMiddleware() gin.HandlerFunc {
+	return gin.Logger()
+}
+
+func RecoverMiddleware() gin.HandlerFunc {
+	return gin.Recovery()
+}

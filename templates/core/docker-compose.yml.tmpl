@@ -1,0 +1,94 @@
+services:
+  app:
+    container_name: [[.ServiceName]]-api
+    hostname: backend
+    image: [[.ServiceName]]:latest
+    build:
+      context: .
+      dockerfile: builds/Dockerfile
+    environment:
+      - ENV=local
+    volumes:
+      - ./config/config.local.yaml:/config/config.local.yaml
+    ports:
+      - "8090:8080"
+    depends_on:
+[[- if .HasPostgres]]
+      - postgres
+[[- end]]
+[[- if .HasMySQL]]
+      - mysql
+[[- end]]
+[[- if .HasMongoDB]]
+      - mongo
+[[- end]]
+[[- if .HasRedis]]
+      - redis
+[[- end]]
+[[- if .HasPostgres]]
+
+  postgres:
+    container_name: [[.ServiceName]]-db
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-[[.ServiceName]]}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+[[- end]]
+[[- if .HasMySQL]]
+
+  mysql:
+    container_name: [[.ServiceName]]-mysql
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_DATABASE=${DB_NAME:-[[.ServiceName]]}
+      - MYSQL_USER=${DB_USER:-mysql}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-mysql}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+[[- end]]
+[[- if .HasMongoDB]]
+
+  mongo:
+    container_name: [[.ServiceName]]-mongo
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+[[- end]]
+[[- if .HasRedis]]
+
+  redis:
+    container_name: [[.ServiceName]]-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+[[- end]]
+
+volumes:
+[[- if .HasPostgres]]
+  pgdata:
+    driver: local
+[[- end]]
+[[- if .HasMySQL]]
+  mysqldata:
+    driver: local
+[[- end]]
+[[- if .HasMongoDB]]
+  mongodata:
+    driver: local
+[[- end]]
+[[- if .HasRedis]]
+  redisdata:
+    driver: local
+[[- end]]

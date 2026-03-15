@@ -1,0 +1,21 @@
+package healthcheck
+
+import (
+	"[[.ModuleName]]/internal/service"
+	"github.com/gofiber/fiber/v2"
+)
+
+func New(g fiber.Router, svc *service.Service) {
+	g.Get("", handler(svc))
+	g.Get("/", handler(svc))
+}
+
+func handler(svc *service.Service) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		status, err := svc.Health.Check(c.Context())
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+		}
+		return c.JSON(status)
+	}
+}

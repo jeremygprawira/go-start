@@ -1,0 +1,52 @@
+package http
+
+import (
+	"net/http"
+
+	"[[.ModuleName]]/internal/config"
+	v1 "[[.ModuleName]]/internal/deliveries/http/api/v1"
+	healthcheck "[[.ModuleName]]/internal/deliveries/http/health_check"
+	"[[.ModuleName]]/internal/deliveries/http/middleware"
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+	"[[.ModuleName]]/internal/service"
+
+	"github.com/gin-gonic/gin"
+[[- if .UseSwagger]]
+	_ "[[.ModuleName]]/docs"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
+[[- end]]
+)
+
+[[- if .UseJWT]]
+func New(r *gin.Engine, svc *service.Service, cfg *config.Configuration, jwtConfig *jwtc.Configuration) {
+[[- else]]
+func New(r *gin.Engine, svc *service.Service, cfg *config.Configuration) {
+[[- end]]
+	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.LoggerMiddleware())
+
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "[[.ServiceName]] is running 🚀")
+	})
+[[- if .UseSwagger]]
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+[[- end]]
+
+	// Health
+	health := r.Group("/health")
+	healthcheck.New(health, svc)
+
+	// API
+	api := r.Group("/api")
+	api.Use(middleware.APIKeyMiddleware(cfg))
+
+	// V1
+[[- if .UseJWT]]
+	v1.New(api, svc, cfg, jwtConfig)
+[[- else]]
+	v1.New(api, svc, cfg)
+[[- end]]
+}

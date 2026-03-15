@@ -1,0 +1,33 @@
+package middleware
+
+import (
+	"net/http"
+	"strings"
+
+	"[[.ModuleName]]/internal/config"
+	"[[.ModuleName]]/internal/pkg/jwtc"
+	"github.com/labstack/echo/v4"
+)
+
+// JWTMiddleware validates JWT access tokens in the Authorization header.
+func JWTMiddleware(cfg *config.Configuration, jwtConfig *jwtc.Configuration) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"message": "missing or invalid authorization header"})
+			}
+
+			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			claims, err := jwtConfig.ParseAccessToken(tokenStr)
+			if err != nil {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"message": "invalid or expired token"})
+			}
+
+			c.Set("user_id", claims.UserID)
+			c.Set("email", claims.Email)
+			c.Set("role", claims.Role)
+			return next(c)
+		}
+	}
+}

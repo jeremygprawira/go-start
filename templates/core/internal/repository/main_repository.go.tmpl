@@ -1,0 +1,50 @@
+package repository
+
+import (
+	"[[.ModuleName]]/internal/pkg/database"
+[[- if .HasPostgres]]
+	"[[.ModuleName]]/internal/repository/pgsql"
+[[- end]]
+[[- if .HasMySQL]]
+	"[[.ModuleName]]/internal/repository/mysql"
+[[- end]]
+[[- if .HasMongoDB]]
+	"[[.ModuleName]]/internal/repository/mongo"
+[[- end]]
+[[- if .HasRedis]]
+	"[[.ModuleName]]/internal/repository/cache"
+[[- end]]
+)
+
+// Repository aggregates all data-layer repositories.
+type Repository struct {
+[[- if .HasPostgres]]
+	Postgre *pgsql.PostgreRepository
+[[- end]]
+[[- if .HasMySQL]]
+	MySQL   *mysql.MySQLRepository
+[[- end]]
+[[- if .HasMongoDB]]
+	Mongo   *mongo.MongoRepository
+[[- end]]
+[[- if .HasRedis]]
+	Cache   *cache.CacheRepository
+[[- end]]
+}
+
+func New(db *database.Database) *Repository {
+	return &Repository{
+[[- if .HasPostgres]]
+		Postgre: pgsql.New(db.PostgreDatabase),
+[[- end]]
+[[- if .HasMySQL]]
+		MySQL:   mysql.New(db.MySQLDatabase),
+[[- end]]
+[[- if .HasMongoDB]]
+		Mongo:   mongo.New(db.MongoDatabase),
+[[- end]]
+[[- if .HasRedis]]
+		Cache:   cache.New(db.RedisDatabase),
+[[- end]]
+	}
+}

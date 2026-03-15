@@ -1,0 +1,52 @@
+package http
+
+import (
+	"[[.ModuleName]]/internal/config"
+	v1 "[[.ModuleName]]/internal/deliveries/http/api/v1"
+	healthcheck "[[.ModuleName]]/internal/deliveries/http/health_check"
+	"[[.ModuleName]]/internal/deliveries/http/middleware"
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+	"[[.ModuleName]]/internal/service"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+[[- if .UseSwagger]]
+	_ "[[.ModuleName]]/docs"
+	fiberSwagger "github.com/gofiber/swagger"
+[[- end]]
+)
+
+[[- if .UseJWT]]
+func New(app *fiber.App, svc *service.Service, cfg *config.Configuration, jwtConfig *jwtc.Configuration) {
+[[- else]]
+func New(app *fiber.App, svc *service.Service, cfg *config.Configuration) {
+[[- end]]
+	app.Use(recover.New())
+	app.Use(cors.New())
+	app.Use(middleware.LoggerMiddleware())
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("[[.ServiceName]] is running 🚀")
+	})
+[[- if .UseSwagger]]
+	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
+[[- end]]
+
+	// Health
+	health := app.Group("/health")
+	healthcheck.New(health, svc)
+
+	// API
+	api := app.Group("/api")
+	api.Use(middleware.APIKeyMiddleware(cfg))
+
+	// V1
+[[- if .UseJWT]]
+	v1.New(api, svc, cfg, jwtConfig)
+[[- else]]
+	v1.New(api, svc, cfg)
+[[- end]]
+}

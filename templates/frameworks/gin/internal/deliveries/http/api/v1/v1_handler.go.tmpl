@@ -1,0 +1,23 @@
+package v1
+
+import (
+	"[[.ModuleName]]/internal/config"
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+	"[[.ModuleName]]/internal/service"
+	"github.com/gin-gonic/gin"
+)
+
+[[- if .UseJWT]]
+func New(api *gin.RouterGroup, svc *service.Service, cfg *config.Configuration, jwtConfig *jwtc.Configuration) {
+[[- else]]
+func New(api *gin.RouterGroup, svc *service.Service, cfg *config.Configuration) {
+[[- end]]
+	v1 := api.Group("/v1")
+[[- if .UseJWT]]
+	NewUserV1(v1, svc, cfg, jwtConfig)
+[[- else]]
+	NewUserV1(v1, svc, cfg)
+[[- end]]
+}

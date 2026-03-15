@@ -1,0 +1,29 @@
+package database
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"[[.ModuleName]]/internal/config"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+)
+
+// ConnectToMongoDB creates a MongoDB client.
+func ConnectToMongoDB(cfg *config.Configuration) (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	clientOpts := options.Client().ApplyURI(cfg.MongoDB.URI)
+	client, err := mongo.Connect(clientOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
+	}
+
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("failed to ping mongodb: %w", err)
+	}
+
+	return client, nil
+}

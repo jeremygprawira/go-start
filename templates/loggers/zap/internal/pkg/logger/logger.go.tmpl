@@ -1,0 +1,65 @@
+package logger
+
+import (
+	"context"
+	"os"
+
+	"[[.ModuleName]]/internal/config"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+// Logger defines the logging interface used across the application.
+type Logger interface {
+	Info(ctx context.Context, msg string, fields ...Field)
+	Error(ctx context.Context, msg string, fields ...Field)
+	Warn(ctx context.Context, msg string, fields ...Field)
+	Debug(ctx context.Context, msg string, fields ...Field)
+	Fatal(ctx context.Context, msg string, fields ...Field)
+}
+
+type Field = zap.Field
+
+// Convenience field helpers
+var (
+	String  = zap.String
+	Int     = zap.Int
+	Bool    = zap.Bool
+	Any     = zap.Any
+	Error   = zap.Error
+	Float64 = zap.Float64
+)
+
+// Instance is the global logger instance.
+var Instance Logger
+
+type zapLogger struct {
+	l *zap.Logger
+}
+
+// Initialize sets up the Zap logger from configuration.
+func Initialize(cfg *config.Configuration) {
+	var zapCfg zap.Config
+	if cfg.Application.Environment == "production" {
+		zapCfg = zap.NewProductionConfig()
+	} else {
+		zapCfg = zap.NewDevelopmentConfig()
+		zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
+
+	zapCfg.OutputPaths = []string{"stdout"}
+	l, err := zapCfg.Build(zap.AddCallerSkip(1))
+	if err != nil {
+		// Fallback to stderr and exit
+		_, _ = os.Stderr.WriteString("failed to build zap logger: " + err.Error())
+		os.Exit(1)
+	}
+
+	Instance = &zapLogger{l: l}
+}
+
+func (z *zapLogger) Info(ctx context.Context, msg string, fields ...Field)  { z.l.Info(msg, fields...) }
+func (z *zapLogger) Error(ctx context.Context, msg string, fields ...Field) { z.l.Error(msg, fields...) }
+func (z *zapLogger) Warn(ctx context.Context, msg string, fields ...Field)  { z.l.Warn(msg, fields...) }
+func (z *zapLogger) Debug(ctx context.Context, msg string, fields ...Field) { z.l.Debug(msg, fields...) }
+func (z *zapLogger) Fatal(ctx context.Context, msg string, fields ...Field) { z.l.Fatal(msg, fields...) }

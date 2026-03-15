@@ -1,0 +1,64 @@
+package logger
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"[[.ModuleName]]/internal/config"
+	"github.com/rs/zerolog"
+)
+
+// Logger defines the logging interface.
+type Logger interface {
+	Info(ctx context.Context, msg string, fields ...Field)
+	Error(ctx context.Context, msg string, fields ...Field)
+	Warn(ctx context.Context, msg string, fields ...Field)
+	Debug(ctx context.Context, msg string, fields ...Field)
+	Fatal(ctx context.Context, msg string, fields ...Field)
+}
+
+// Field is a key-value log field.
+type Field struct {
+	Key   string
+	Value interface{}
+}
+
+func String(key, val string) Field  { return Field{Key: key, Value: val} }
+func Int(key string, val int) Field { return Field{Key: key, Value: val} }
+func Bool(key string, val bool) Field { return Field{Key: key, Value: val} }
+func Any(key string, val interface{}) Field { return Field{Key: key, Value: val} }
+func Error(err error) Field { return Field{Key: "error", Value: err} }
+
+// Instance is the global logger.
+var Instance Logger
+
+type zeroLogger struct {
+	l zerolog.Logger
+}
+
+// Initialize sets up the Zerolog logger.
+func Initialize(cfg *config.Configuration) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	var l zerolog.Logger
+	if cfg.Application.Environment != "production" {
+		l = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
+	} else {
+		l = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	}
+	Instance = &zeroLogger{l: l}
+}
+
+func (z *zeroLogger) emit(level zerolog.Level, ctx context.Context, msg string, fields []Field) {
+	evt := z.l.WithLevel(level)
+	for _, f := range fields {
+		evt = evt.Interface(f.Key, fmt.Sprintf("%v", f.Value))
+	}
+	evt.Msg(msg)
+}
+
+func (z *zeroLogger) Info(ctx context.Context, msg string, fields ...Field)  { z.emit(zerolog.InfoLevel, ctx, msg, fields) }
+func (z *zeroLogger) Error(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.ErrorLevel, ctx, msg, fields) }
+func (z *zeroLogger) Warn(ctx context.Context, msg string, fields ...Field)  { z.emit(zerolog.WarnLevel, ctx, msg, fields) }
+func (z *zeroLogger) Debug(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.DebugLevel, ctx, msg, fields) }
+func (z *zeroLogger) Fatal(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.FatalLevel, ctx, msg, fields) }

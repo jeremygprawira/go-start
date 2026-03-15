@@ -1,0 +1,98 @@
+package v1
+
+import (
+	"net/http"
+
+	"[[.ModuleName]]/internal/config"
+	"[[.ModuleName]]/internal/models"
+	"[[.ModuleName]]/internal/pkg/errorc"
+	"[[.ModuleName]]/internal/pkg/validator"
+	"[[.ModuleName]]/internal/service"
+	"github.com/gin-gonic/gin"
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+)
+
+type userV1Handler struct {
+	svc *service.Service
+	cfg *config.Configuration
+}
+
+[[- if .UseJWT]]
+func NewUserV1(g *gin.RouterGroup, svc *service.Service, cfg *config.Configuration, jwtConfig *jwtc.Configuration) {
+[[- else]]
+func NewUserV1(g *gin.RouterGroup, svc *service.Service, cfg *config.Configuration) {
+[[- end]]
+	h := &userV1Handler{svc: svc, cfg: cfg}
+	users := g.Group("/users")
+	users.POST("", h.CreateUser)
+	users.GET("/:id", h.GetUser)
+	users.PUT("/:id", h.UpdateUser)
+	users.DELETE("/:id", h.DeleteUser)
+}
+
+func (h *userV1Handler) CreateUser(c *gin.Context) {
+	var req models.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	if err := validator.Validate(&req); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
+		return
+	}
+	result, err := h.svc.User.Create(c.Request.Context(), &req)
+	if err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			c.JSON(e.Code, gin.H{"message": e.Message})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, result)
+}
+
+func (h *userV1Handler) GetUser(c *gin.Context) {
+	result, err := h.svc.User.GetByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			c.JSON(e.Code, gin.H{"message": e.Message})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *userV1Handler) UpdateUser(c *gin.Context) {
+	var req models.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	result, err := h.svc.User.Update(c.Request.Context(), c.Param("id"), &req)
+	if err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			c.JSON(e.Code, gin.H{"message": e.Message})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *userV1Handler) DeleteUser(c *gin.Context) {
+	if err := h.svc.User.Delete(c.Request.Context(), c.Param("id")); err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			c.JSON(e.Code, gin.H{"message": e.Message})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}

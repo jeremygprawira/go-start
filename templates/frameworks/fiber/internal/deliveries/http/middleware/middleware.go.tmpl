@@ -1,0 +1,29 @@
+package middleware
+
+import (
+	"[[.ModuleName]]/internal/config"
+	"[[.ModuleName]]/internal/pkg/logger"
+	"github.com/gofiber/fiber/v2"
+)
+
+func APIKeyMiddleware(cfg *config.Configuration) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		key := c.Get("X-API-Key")
+		if key != cfg.Authorization.APIKey {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid or missing API key"})
+		}
+		return c.Next()
+	}
+}
+
+func LoggerMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		err := c.Next()
+		logger.Instance.Info(c.Context(), "request",
+			logger.String("method", c.Method()),
+			logger.String("path", c.Path()),
+			logger.Int("status", c.Response().StatusCode()),
+		)
+		return err
+	}
+}

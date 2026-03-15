@@ -1,0 +1,16 @@
+package pgsql
+
+import (
+	"context"
+	"[[.ModuleName]]/internal/models"
+	"gorm.io/gorm"
+)
+
+// transaction_pgsql_repository.go
+// Atomic runs a function inside a GORM transaction.
+func Atomic(db *gorm.DB, ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return db.WithContext(ctx).Transaction(fn)
+}
+
+// placeholder to keep file valid
+var _ = (*models.User)(nil)

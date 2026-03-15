@@ -1,0 +1,72 @@
+package service
+
+import (
+	"context"
+	"[[.ModuleName]]/internal/models"
+	"[[.ModuleName]]/internal/pkg/errorc"
+	"golang.org/x/crypto/bcrypt"
+)
+
+// UserService defines user business logic.
+type UserService interface {
+	Create(ctx context.Context, req *models.CreateUserRequest) (*models.UserResponse, error)
+	GetByID(ctx context.Context, id string) (*models.UserResponse, error)
+	Update(ctx context.Context, id string, req *models.UpdateUserRequest) (*models.UserResponse, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type userService struct {
+	d *Dependencies
+}
+
+func NewUserService(d *Dependencies) UserService {
+	return &userService{d: d}
+}
+
+func (s *userService) Create(ctx context.Context, req *models.CreateUserRequest) (*models.UserResponse, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errorc.ErrInternalServer.With(err)
+	}
+
+	user := &models.User{
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: string(hashed),
+	}
+	if req.Phone != "" {
+		user.Phone = &req.Phone
+	}
+
+	// TODO: call repository to persist
+	_ = user
+	_ = ctx
+
+	return &models.UserResponse{
+		Name:     req.Name,
+		Email:    req.Email,
+		IsActive: true,
+	}, nil
+}
+
+func (s *userService) GetByID(ctx context.Context, id string) (*models.UserResponse, error) {
+	// TODO: call repository
+	_ = ctx
+	_ = id
+	return nil, errorc.ErrNotFound
+}
+
+func (s *userService) Update(ctx context.Context, id string, req *models.UpdateUserRequest) (*models.UserResponse, error) {
+	// TODO: call repository
+	_ = ctx
+	_ = id
+	_ = req
+	return nil, errorc.ErrNotFound
+}
+
+func (s *userService) Delete(ctx context.Context, id string) error {
+	// TODO: call repository
+	_ = ctx
+	_ = id
+	return errorc.ErrNotFound
+}

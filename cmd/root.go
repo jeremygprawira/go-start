@@ -9,8 +9,10 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "go-start",
-	Short: "A CLI tool to start your Go Programming Language or Golang projects",
-	Long:  `Start your Go projects using Echo, Gin, or Fiber with clean architecture, GORM/raw SQL, JWT, and logger presets.`,
+	Short: "A CLI tool to scaffold production-ready Go projects",
+	Long: `go-start scaffolds Golang projects with clean architecture,
+giving you full flexibility over your framework, database,
+logger, tracing, auth, and more.`,
 }
 
 func Execute() {
@@ -21,7 +23,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.AddCommand(scaffoldCmd)
-	rootCmd.AddCommand(completionCmd)
-	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(newCmd)
 }

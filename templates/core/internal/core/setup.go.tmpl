@@ -1,0 +1,105 @@
+package core
+
+import (
+	"context"
+	"fmt"
+
+	"[[.ModuleName]]/internal/config"
+	handler "[[.ModuleName]]/internal/deliveries/http"
+[[- if .HasAnyDB]]
+	"[[.ModuleName]]/internal/pkg/database"
+[[- end]]
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+	"[[.ModuleName]]/internal/pkg/logger"
+[[- if .UseOTel]]
+	"[[.ModuleName]]/internal/pkg/tracer"
+[[- end]]
+	"[[.ModuleName]]/internal/repository"
+	"[[.ModuleName]]/internal/service"
+
+[[- if eq .Framework "echo"]]
+	"github.com/labstack/echo/v4"
+[[- else if eq .Framework "gin"]]
+	"github.com/gin-gonic/gin"
+[[- else if eq .Framework "fiber"]]
+	"github.com/gofiber/fiber/v2"
+[[- end]]
+)
+
+[[- if eq .Framework "echo"]]
+func Setup(configuration *config.Configuration) (*echo.Echo, error) {
+[[- else if eq .Framework "gin"]]
+func Setup(configuration *config.Configuration) (*gin.Engine, error) {
+[[- else if eq .Framework "fiber"]]
+func Setup(configuration *config.Configuration) (*fiber.App, error) {
+[[- end]]
+	logger.Initialize(configuration)
+
+[[- if .UseOTel]]
+	tp, err := tracer.Initialize(configuration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize tracer: %w", err)
+	}
+	_ = tp
+[[- end]]
+
+[[- if .HasAnyDB]]
+	db, err := database.Connect(configuration)
+	if err != nil {
+		logger.Instance.Error(context.Background(), "failed to connect to database", logger.Error(err))
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+[[- end]]
+
+[[- if .UseJWT]]
+	jwtConfig := jwtc.DefaultConfig(configuration)
+[[- end]]
+
+	_ = fmt.Errorf // suppress unused import if not used
+
+[[- if .HasAnyDB]]
+	repo := repository.New(db)
+[[- else]]
+	repo := repository.New()
+[[- end]]
+
+	svc := service.New(service.Dependencies{
+[[- if .HasAnyDB]]
+		Repository: *repo,
+[[- end]]
+[[- if .UseJWT]]
+		JWTConfig:  jwtConfig,
+[[- end]]
+		Config:     configuration,
+	})
+
+[[- if eq .Framework "echo"]]
+	e := echo.New()
+	e.HideBanner = true
+	e.HidePort = true
+[[- if .UseJWT]]
+	handler.New(e, svc, configuration, jwtConfig)
+[[- else]]
+	handler.New(e, svc, configuration)
+[[- end]]
+	return e, nil
+[[- else if eq .Framework "gin"]]
+	r := gin.New()
+[[- if .UseJWT]]
+	handler.New(r, svc, configuration, jwtConfig)
+[[- else]]
+	handler.New(r, svc, configuration)
+[[- end]]
+	return r, nil
+[[- else if eq .Framework "fiber"]]
+	app := fiber.New()
+[[- if .UseJWT]]
+	handler.New(app, svc, configuration, jwtConfig)
+[[- else]]
+	handler.New(app, svc, configuration)
+[[- end]]
+	return app, nil
+[[- end]]
+}

@@ -1,0 +1,81 @@
+package database
+
+import (
+	"[[.ModuleName]]/internal/config"
+[[- if .HasPostgres]]
+[[- if .UseGORM]]
+	"gorm.io/gorm"
+[[- else]]
+	"github.com/jackc/pgx/v5/pgxpool"
+[[- end]]
+[[- end]]
+[[- if .HasMySQL]]
+[[- if .UseGORM]]
+	"gorm.io/gorm"
+[[- else]]
+	"github.com/jmoiron/sqlx"
+[[- end]]
+[[- end]]
+[[- if .HasMongoDB]]
+	"go.mongodb.org/mongo-driver/v2/mongo"
+[[- end]]
+[[- if .HasRedis]]
+	"github.com/redis/go-redis/v9"
+[[- end]]
+)
+
+// Database holds all connected database clients.
+type Database struct {
+[[- if .HasPostgres]]
+[[- if .UseGORM]]
+	PostgreDatabase *gorm.DB
+[[- else]]
+	PostgreDatabase *pgxpool.Pool
+[[- end]]
+[[- end]]
+[[- if .HasMySQL]]
+[[- if .UseGORM]]
+	MySQLDatabase   *gorm.DB
+[[- else]]
+	MySQLDatabase   *sqlx.DB
+[[- end]]
+[[- end]]
+[[- if .HasMongoDB]]
+	MongoDatabase   *mongo.Client
+[[- end]]
+[[- if .HasRedis]]
+	RedisDatabase   *redis.Client
+[[- end]]
+}
+
+// Connect initialises all selected databases and returns the aggregate struct.
+func Connect(config *config.Configuration) (*Database, error) {
+	db := &Database{}
+	var err error
+[[- if .HasPostgres]]
+	db.PostgreDatabase, err = ConnectToPostgreSQL(config)
+	if err != nil {
+		return nil, err
+	}
+[[- end]]
+[[- if .HasMySQL]]
+	db.MySQLDatabase, err = ConnectToMySQL(config)
+	if err != nil {
+		return nil, err
+	}
+[[- end]]
+[[- if .HasMongoDB]]
+	db.MongoDatabase, err = ConnectToMongoDB(config)
+	if err != nil {
+		return nil, err
+	}
+[[- end]]
+[[- if .HasRedis]]
+	db.RedisDatabase, err = ConnectToRedis(config)
+	if err != nil {
+		return nil, err
+	}
+[[- end]]
+	_ = err
+	return db, nil
+}

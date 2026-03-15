@@ -1,0 +1,18 @@
+package models
+
+// MetaResponse holds pagination / metadata for list responses.
+type MetaResponse struct {
+	Page      int   `json:"page"`
+	PerPage   int   `json:"per_page"`
+	Total     int64 `json:"total"`
+	TotalPage int   `json:"total_page"`
+}
+
+// Response is the standard API response envelope.
+type Response struct {
+	Status  int         `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+	Meta    interface{} `json:"meta,omitempty"`
+	Error   interface{} `json:"error,omitempty"`
+}

@@ -1,0 +1,23 @@
+package healthcheck
+
+import (
+	"[[.ModuleName]]/internal/service"
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func New(g *gin.RouterGroup, svc *service.Service) {
+	g.GET("", handler(svc))
+	g.GET("/", handler(svc))
+}
+
+func handler(svc *service.Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status, err := svc.Health.Check(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, status)
+	}
+}

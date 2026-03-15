@@ -1,0 +1,116 @@
+package v1
+
+import (
+	"net/http"
+
+	"[[.ModuleName]]/internal/config"
+	"[[.ModuleName]]/internal/models"
+	"[[.ModuleName]]/internal/pkg/errorc"
+	"[[.ModuleName]]/internal/pkg/response"
+	"[[.ModuleName]]/internal/pkg/validator"
+	"[[.ModuleName]]/internal/service"
+
+	"github.com/labstack/echo/v4"
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/deliveries/http/middleware"
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+)
+
+type userV1Handler struct {
+	svc *service.Service
+	cfg *config.Configuration
+}
+
+[[- if .UseJWT]]
+func NewUserV1(g *echo.Group, svc *service.Service, cfg *config.Configuration, jwtConfig *jwtc.Configuration) {
+	h := &userV1Handler{svc: svc, cfg: cfg}
+
+	jwtMw := middleware.JWTMiddleware(cfg, jwtConfig)
+	users := g.Group("/users")
+	users.POST("", h.CreateUser)
+	users.GET("/:id", h.GetUser, jwtMw)
+	users.PUT("/:id", h.UpdateUser, jwtMw)
+	users.DELETE("/:id", h.DeleteUser, jwtMw)
+}
+[[- else]]
+func NewUserV1(g *echo.Group, svc *service.Service, cfg *config.Configuration) {
+	h := &userV1Handler{svc: svc, cfg: cfg}
+
+	users := g.Group("/users")
+	users.POST("", h.CreateUser)
+	users.GET("/:id", h.GetUser)
+	users.PUT("/:id", h.UpdateUser)
+	users.DELETE("/:id", h.DeleteUser)
+}
+[[- end]]
+
+// CreateUser godoc
+// @Summary Create a new user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param body body models.CreateUserRequest true "Create user payload"
+// @Success 201 {object} models.UserResponse
+// @Router /api/v1/users [post]
+func (h *userV1Handler) CreateUser(c echo.Context) error {
+	var req models.CreateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return response.BadRequest(c, err.Error())
+	}
+	if err := validator.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"message": err.Error()})
+	}
+
+	result, err := h.svc.User.Create(c.Request().Context(), &req)
+	if err != nil {
+		var appErr *errorc.AppError
+		if e, ok := err.(*errorc.AppError); ok {
+			appErr = e
+			return c.JSON(appErr.Code, map[string]string{"message": appErr.Message})
+		}
+		return response.InternalError(c, err.Error())
+	}
+
+	return response.Created(c, result)
+}
+
+func (h *userV1Handler) GetUser(c echo.Context) error {
+	id := c.Param("id")
+	result, err := h.svc.User.GetByID(c.Request().Context(), id)
+	if err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			return c.JSON(e.Code, map[string]string{"message": e.Message})
+		}
+		return response.InternalError(c, err.Error())
+	}
+	return response.OK(c, result)
+}
+
+func (h *userV1Handler) UpdateUser(c echo.Context) error {
+	id := c.Param("id")
+	var req models.UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return response.BadRequest(c, err.Error())
+	}
+
+	result, err := h.svc.User.Update(c.Request().Context(), id, &req)
+	if err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			return c.JSON(e.Code, map[string]string{"message": e.Message})
+		}
+		return response.InternalError(c, err.Error())
+	}
+	return response.OK(c, result)
+}
+
+func (h *userV1Handler) DeleteUser(c echo.Context) error {
+	id := c.Param("id")
+	if err := h.svc.User.Delete(c.Request().Context(), id); err != nil {
+		if e, ok := err.(*errorc.AppError); ok {
+			return c.JSON(e.Code, map[string]string{"message": e.Message})
+		}
+		return response.InternalError(c, err.Error())
+	}
+	return c.NoContent(http.StatusNoContent)
+}

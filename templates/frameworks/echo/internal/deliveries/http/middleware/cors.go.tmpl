@@ -1,0 +1,16 @@
+package middleware
+
+import (
+	"[[.ModuleName]]/internal/config"
+	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
+)
+
+// CORSMiddleware configures CORS for the Echo instance.
+func CORSMiddleware(cfg *config.Configuration) echo.MiddlewareFunc {
+	return echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowHeaders: cfg.CORS.HeadersAllowed,
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	})
+}

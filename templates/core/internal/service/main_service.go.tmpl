@@ -1,0 +1,35 @@
+package service
+
+import (
+	"[[.ModuleName]]/internal/config"
+[[- if .HasAnyDB]]
+	"[[.ModuleName]]/internal/repository"
+[[- end]]
+[[- if .UseJWT]]
+	"[[.ModuleName]]/internal/pkg/jwtc"
+[[- end]]
+)
+
+// Dependencies groups all service dependencies.
+type Dependencies struct {
+[[- if .HasAnyDB]]
+	Repository repository.Repository
+[[- end]]
+[[- if .UseJWT]]
+	JWTConfig  *jwtc.Configuration
+[[- end]]
+	Config     *config.Configuration
+}
+
+// Service groups all business-logic services.
+type Service struct {
+	Health HealthService
+	User   UserService
+}
+
+func New(d Dependencies) *Service {
+	return &Service{
+		Health: NewHealthService(&d),
+		User:   NewUserService(&d),
+	}
+}

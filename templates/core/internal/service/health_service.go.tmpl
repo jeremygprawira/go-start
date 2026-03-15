@@ -1,0 +1,26 @@
+package service
+
+import (
+	"context"
+	"[[.ModuleName]]/internal/models"
+)
+
+// HealthService defines the health-check interface.
+type HealthService interface {
+	Check(ctx context.Context) (*models.HealthStatus, error)
+}
+
+type healthService struct {
+	d *Dependencies
+}
+
+func NewHealthService(d *Dependencies) HealthService {
+	return &healthService{d: d}
+}
+
+func (s *healthService) Check(ctx context.Context) (*models.HealthStatus, error) {
+	return &models.HealthStatus{
+		Status:  "ok",
+		Version: s.d.Config.Application.Version,
+	}, nil
+}

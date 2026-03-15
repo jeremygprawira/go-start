@@ -1,0 +1,72 @@
+application:
+  name: "[[.ServiceName]]"
+  version: "1.0.0"
+  port: 8080
+  environment: "local"
+  host: "0.0.0.0"
+  timeout: 30
+  timezone: "UTC"
+
+authorization:
+  issuer: "[[.ServiceName]]"
+  api_key: "changeme"
+[[- if .UseJWT]]
+  access:
+    secret: "change-this-access-secret-to-something-long-and-random"
+    duration: "1h"
+  refresh:
+    secret: "change-this-refresh-secret-to-something-long-and-random"
+    duration: "168h"
+[[- end]]
+
+cors:
+  headers_allowed:
+    - "Authorization"
+    - "Content-Type"
+    - "X-API-Key"
+    - "X-Request-ID"
+[[- if .HasPostgres]]
+
+postgresql:
+  name: "[[.ServiceName]]"
+  user: "postgres"
+  password: "postgres"
+  host: "localhost"
+  port: 5432
+  ssl_mode: "disable"
+  max_idle_conns: 5
+  max_open_conns: 20
+  conn_max_lifetime: "5m"
+[[- end]]
+[[- if .HasMySQL]]
+
+mysql:
+  name: "[[.ServiceName]]"
+  user: "mysql"
+  password: "mysql"
+  host: "localhost"
+  port: 3306
+  max_idle_conns: 5
+  max_open_conns: 20
+  conn_max_lifetime: "5m"
+[[- end]]
+[[- if .HasMongoDB]]
+
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "[[.ServiceName]]"
+[[- end]]
+[[- if .HasRedis]]
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+[[- end]]
+[[- if .UseOTel]]
+
+tracing:
+  endpoint: "localhost:4317"
+  service_name: "[[.ServiceName]]"
+[[- end]]

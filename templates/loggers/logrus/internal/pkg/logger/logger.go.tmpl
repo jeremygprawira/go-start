@@ -1,0 +1,65 @@
+package logger
+
+import (
+	"context"
+	"os"
+
+	"[[.ModuleName]]/internal/config"
+	"github.com/sirupsen/logrus"
+)
+
+// Logger defines the logging interface.
+type Logger interface {
+	Info(ctx context.Context, msg string, fields ...Field)
+	Error(ctx context.Context, msg string, fields ...Field)
+	Warn(ctx context.Context, msg string, fields ...Field)
+	Debug(ctx context.Context, msg string, fields ...Field)
+	Fatal(ctx context.Context, msg string, fields ...Field)
+}
+
+// Field is a key-value log field.
+type Field struct {
+	Key   string
+	Value interface{}
+}
+
+func String(key, val string) Field  { return Field{Key: key, Value: val} }
+func Int(key string, val int) Field { return Field{Key: key, Value: val} }
+func Bool(key string, val bool) Field { return Field{Key: key, Value: val} }
+func Any(key string, val interface{}) Field { return Field{Key: key, Value: val} }
+func Error(err error) Field { return Field{Key: "error", Value: err} }
+
+//  Instance is the global logger.
+var Instance Logger
+
+type logrusLogger struct {
+	l *logrus.Logger
+}
+
+// Initialize sets up the Logrus logger.
+func Initialize(cfg *config.Configuration) {
+	l := logrus.New()
+	l.SetOutput(os.Stdout)
+	if cfg.Application.Environment == "production" {
+		l.SetFormatter(&logrus.JSONFormatter{})
+		l.SetLevel(logrus.InfoLevel)
+	} else {
+		l.SetFormatter(&logrus.TextFormatter{FullTimestamp: true, ForceColors: true})
+		l.SetLevel(logrus.DebugLevel)
+	}
+	Instance = &logrusLogger{l: l}
+}
+
+func (lg *logrusLogger) toFields(fields []Field) logrus.Fields {
+	f := make(logrus.Fields, len(fields))
+	for _, field := range fields {
+		f[field.Key] = field.Value
+	}
+	return f
+}
+
+func (lg *logrusLogger) Info(ctx context.Context, msg string, fields ...Field)  { lg.l.WithFields(lg.toFields(fields)).Info(msg) }
+func (lg *logrusLogger) Error(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Error(msg) }
+func (lg *logrusLogger) Warn(ctx context.Context, msg string, fields ...Field)  { lg.l.WithFields(lg.toFields(fields)).Warn(msg) }
+func (lg *logrusLogger) Debug(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Debug(msg) }
+func (lg *logrusLogger) Fatal(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Fatal(msg) }

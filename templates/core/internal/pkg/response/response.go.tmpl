@@ -1,0 +1,78 @@
+package response
+
+import (
+	"net/http"
+
+	"[[.ModuleName]]/internal/models"
+[[- if eq .Framework "echo"]]
+	"github.com/labstack/echo/v4"
+[[- else if eq .Framework "gin"]]
+	"github.com/gin-gonic/gin"
+[[- else if eq .Framework "fiber"]]
+	"github.com/gofiber/fiber/v2"
+[[- end]]
+)
+
+[[- if eq .Framework "echo"]]
+func Success(ctx echo.Context, code int, data interface{}) error {
+	return ctx.JSON(code, models.Response{Status: code, Message: http.StatusText(code), Data: data})
+}
+
+func Error(ctx echo.Context, code int, message string) error {
+	return ctx.JSON(code, models.Response{Status: code, Message: message})
+}
+
+func Created(ctx echo.Context, data interface{}) error {
+	return Success(ctx, http.StatusCreated, data)
+}
+
+func OK(ctx echo.Context, data interface{}) error {
+	return Success(ctx, http.StatusOK, data)
+}
+
+func BadRequest(ctx echo.Context, message string) error {
+	return Error(ctx, http.StatusBadRequest, message)
+}
+
+func NotFound(ctx echo.Context, message string) error {
+	return Error(ctx, http.StatusNotFound, message)
+}
+
+func Unauthorized(ctx echo.Context, message string) error {
+	return Error(ctx, http.StatusUnauthorized, message)
+}
+
+func InternalError(ctx echo.Context, message string) error {
+	return Error(ctx, http.StatusInternalServerError, message)
+}
+[[- else if eq .Framework "gin"]]
+func Success(ctx *gin.Context, code int, data interface{}) {
+	ctx.JSON(code, models.Response{Status: code, Message: http.StatusText(code), Data: data})
+}
+
+func Error(ctx *gin.Context, code int, message string) {
+	ctx.JSON(code, models.Response{Status: code, Message: message})
+}
+
+func Created(ctx *gin.Context, data interface{})     { Success(ctx, http.StatusCreated, data) }
+func OK(ctx *gin.Context, data interface{})          { Success(ctx, http.StatusOK, data) }
+func BadRequest(ctx *gin.Context, message string)    { Error(ctx, http.StatusBadRequest, message) }
+func NotFound(ctx *gin.Context, message string)      { Error(ctx, http.StatusNotFound, message) }
+func Unauthorized(ctx *gin.Context, message string)  { Error(ctx, http.StatusUnauthorized, message) }
+func InternalError(ctx *gin.Context, message string) { Error(ctx, http.StatusInternalServerError, message) }
+[[- else if eq .Framework "fiber"]]
+func Success(ctx *fiber.Ctx, code int, data interface{}) error {
+	return ctx.Status(code).JSON(models.Response{Status: code, Message: http.StatusText(code), Data: data})
+}
+
+func Error(ctx *fiber.Ctx, code int, message string) error {
+	return ctx.Status(code).JSON(models.Response{Status: code, Message: message})
+}
+
+func Created(ctx *fiber.Ctx, data interface{}) error     { return Success(ctx, http.StatusCreated, data) }
+func OK(ctx *fiber.Ctx, data interface{}) error          { return Success(ctx, http.StatusOK, data) }
+func BadRequest(ctx *fiber.Ctx, message string) error    { return Error(ctx, http.StatusBadRequest, message) }
+func NotFound(ctx *fiber.Ctx, message string) error      { return Error(ctx, http.StatusNotFound, message) }
+func Unauthorized(ctx *fiber.Ctx, message string) error  { return Error(ctx, http.StatusUnauthorized, message) }
+func InternalError(ctx *fiber.Ctx, message string) error { return Error(ctx, http.StatusInternalServerError, message) }
+[[- end]]

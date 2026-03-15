@@ -1,0 +1,64 @@
+package mysql
+
+import (
+	"context"
+	"[[.ModuleName]]/internal/models"
+	"github.com/jmoiron/sqlx"
+)
+
+// MySQLRepository aggregates all MySQL repositories.
+type MySQLRepository struct {
+	Health HealthRepository
+	User   UserRepository
+}
+
+func New(db *sqlx.DB) *MySQLRepository {
+	return &MySQLRepository{
+		Health: NewHealthRepository(db),
+		User:   NewUserRepository(db),
+	}
+}
+
+// HealthRepository handles db health check.
+type HealthRepository interface {
+	Ping(ctx context.Context) error
+}
+
+// UserRepository handles user data access.
+type UserRepository interface {
+	Create(ctx context.Context, user *models.User) error
+	FindByID(ctx context.Context, id string) (*models.User, error)
+}
+
+type healthRepository struct{ db *sqlx.DB }
+
+func NewHealthRepository(db *sqlx.DB) HealthRepository {
+	return &healthRepository{db: db}
+}
+
+func (r *healthRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
+type userRepository struct{ db *sqlx.DB }
+
+func NewUserRepository(db *sqlx.DB) UserRepository {
+	return &userRepository{db: db}
+}
+
+func (r *userRepository) Create(ctx context.Context, user *models.User) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)`,
+		user.ID, user.Name, user.Email, user.Password,
+	)
+	return err
+}
+
+func (r *userRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
+	var user models.User
+	err := r.db.GetContext(ctx, &user, `SELECT id, name, email FROM users WHERE id = ?`, id)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

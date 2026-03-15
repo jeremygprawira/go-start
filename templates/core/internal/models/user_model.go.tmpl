@@ -1,0 +1,36 @@
+package models
+
+import "[[.ModuleName]]/internal/models"
+
+// User represents a user entity.
+type User struct {
+	models.BaseModel
+	Name     string  `json:"name" gorm:"not null"`
+	Email    string  `json:"email" gorm:"unique;not null"`
+	Password string  `json:"-" gorm:"not null"`
+	Phone    *string `json:"phone,omitempty"`
+	IsActive bool    `json:"is_active" gorm:"default:true"`
+}
+
+// CreateUserRequest is the DTO for creating a user.
+type CreateUserRequest struct {
+	Name     string `json:"name" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
+	Phone    string `json:"phone" validate:"omitempty"`
+}
+
+// UpdateUserRequest is the DTO for updating a user.
+type UpdateUserRequest struct {
+	Name  string `json:"name" validate:"omitempty"`
+	Phone string `json:"phone" validate:"omitempty"`
+}
+
+// UserResponse is the public-facing user DTO.
+type UserResponse struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Email    string  `json:"email"`
+	Phone    *string `json:"phone,omitempty"`
+	IsActive bool    `json:"is_active"`
+}

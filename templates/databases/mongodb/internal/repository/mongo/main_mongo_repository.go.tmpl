@@ -1,0 +1,60 @@
+package mongo
+
+import (
+	"context"
+	"[[.ModuleName]]/internal/models"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+)
+
+// MongoRepository aggregates all MongoDB collections.
+type MongoRepository struct {
+	Health HealthRepository
+	User   UserRepository
+}
+
+func New(client *mongo.Client) *MongoRepository {
+	db := client.Database("[[.ServiceName]]")
+	return &MongoRepository{
+		Health: NewHealthRepository(client),
+		User:   NewUserRepository(db),
+	}
+}
+
+// HealthRepository handles health check.
+type HealthRepository interface {
+	Ping(ctx context.Context) error
+}
+
+// UserRepository handles user data access in MongoDB.
+type UserRepository interface {
+	Create(ctx context.Context, user *models.User) error
+	FindByID(ctx context.Context, id string) (*models.User, error)
+}
+
+type healthRepository struct{ client *mongo.Client }
+
+func NewHealthRepository(client *mongo.Client) HealthRepository {
+	return &healthRepository{client: client}
+}
+
+func (r *healthRepository) Ping(ctx context.Context) error {
+	return r.client.Ping(ctx, nil)
+}
+
+type userRepository struct{ collection *mongo.Collection }
+
+func NewUserRepository(db *mongo.Database) UserRepository {
+	return &userRepository{collection: db.Collection("users")}
+}
+
+func (r *userRepository) Create(ctx context.Context, user *models.User) error {
+	_, err := r.collection.InsertOne(ctx, user)
+	return err
+}
+
+func (r *userRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
+	// TODO: implement query by id
+	_ = id
+	_ = ctx
+	return nil, nil
+}

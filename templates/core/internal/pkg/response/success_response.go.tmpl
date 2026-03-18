@@ -1,0 +1,200 @@
+package response
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+
+	"[[.ModuleName]]/internal/models"
+	"[[.ModuleName]]/internal/pkg/numberc"
+	"[[.ModuleName]]/internal/pkg/stringc"
+
+	"github.com/google/uuid"
+
+[[- if eq .Framework "echo"]]
+	"github.com/labstack/echo/v4"
+[[- else if eq .Framework "gin"]]
+	"github.com/gin-gonic/gin"
+[[- else if eq .Framework "fiber"]]
+	"github.com/gofiber/fiber/v2"
+[[- end]]
+)
+
+[[- if eq .Framework "echo"]]
+func Success(ctx echo.Context, code int, data interface{}, message ...string) error {
+[[- else if eq .Framework "gin"]]
+func Success(ctx *gin.Context, code int, data interface{}, message ...string) {
+[[- else if eq .Framework "fiber"]]
+func Success(ctx *fiber.Ctx, code int, data interface{}, message ...string) error {
+[[- end]]
+
+[[- if eq .Framework "echo"]]
+	requestID, _ := ctx.Get("X-Request-ID").(string)
+	timestamp, _ := ctx.Get("X-Timestamp").(string)
+[[- else if eq .Framework "gin"]]
+	requestID := ctx.GetString("X-Request-ID")
+	timestamp := ctx.GetString("X-Timestamp")
+[[- else if eq .Framework "fiber"]]
+	requestID, _ := ctx.Locals("X-Request-ID").(string)
+	timestamp, _ := ctx.Locals("X-Timestamp").(string)
+[[- end]]
+
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	if timestamp == "" {
+		timestamp = time.Now().Format(time.RFC3339)
+	}
+
+	var finalMessage string
+	switch len(message) {
+	case 0:
+		finalMessage = "Request has been successfully processed."
+	case 1:
+		finalMessage = message[0]
+	default:
+		finalMessage = fmt.Sprintf(message[0], stringc.SlicesToInterfaces(message[1:])...)
+	}
+
+	resp := models.Response{
+		Code:    code,
+		Status:  "OK",
+		Message: finalMessage,
+		Data:    data,
+		Metadata: models.Metadata{
+			RequestId: requestID,
+			Timestamp: timestamp,
+		},
+	}
+
+[[- if eq .Framework "echo"]]
+	return ctx.JSON(code, resp)
+[[- else if eq .Framework "gin"]]
+	ctx.JSON(code, resp)
+[[- else if eq .Framework "fiber"]]
+	return ctx.Status(code).JSON(resp)
+[[- end]]
+}
+
+[[- if eq .Framework "echo"]]
+func SuccessList(ctx echo.Context, code int, message string, data interface{}) error {
+[[- else if eq .Framework "gin"]]
+func SuccessList(ctx *gin.Context, code int, message string, data interface{}) {
+[[- else if eq .Framework "fiber"]]
+func SuccessList(ctx *fiber.Ctx, code int, message string, data interface{}) error {
+[[- end]]
+
+[[- if eq .Framework "echo"]]
+	requestID, _ := ctx.Get("X-Request-ID").(string)
+	timestamp, _ := ctx.Get("X-Timestamp").(string)
+[[- else if eq .Framework "gin"]]
+	requestID := ctx.GetString("X-Request-ID")
+	timestamp := ctx.GetString("X-Timestamp")
+[[- else if eq .Framework "fiber"]]
+	requestID, _ := ctx.Locals("X-Request-ID").(string)
+	timestamp, _ := ctx.Locals("X-Timestamp").(string)
+[[- end]]
+
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	if timestamp == "" {
+		timestamp = time.Now().Format(time.RFC3339)
+	}
+
+	if message == "" {
+		message = "Request has been successfully processed."
+	}
+
+	length, err := numberc.LengthOf(data)
+	if err != nil {
+		errResp := models.Response{
+			Code:    http.StatusInternalServerError,
+			Status:  "ERROR",
+			Message: "Failed to get length of data.",
+			Metadata: models.Metadata{
+				RequestId: requestID,
+				Timestamp: timestamp,
+			},
+		}
+[[- if eq .Framework "echo"]]
+		return ctx.JSON(http.StatusInternalServerError, errResp)
+[[- else if eq .Framework "gin"]]
+		ctx.JSON(http.StatusInternalServerError, errResp)
+		return
+[[- else if eq .Framework "fiber"]]
+		return ctx.Status(http.StatusInternalServerError).JSON(errResp)
+[[- end]]
+	}
+
+	resp := models.Response{
+		Code:    code,
+		Status:  "OK",
+		Message: message,
+		Data:    data,
+		Metadata: models.Metadata{
+			RequestId: requestID,
+			Timestamp: timestamp,
+			TotalRows: length,
+		},
+	}
+
+[[- if eq .Framework "echo"]]
+	return ctx.JSON(http.StatusOK, resp)
+[[- else if eq .Framework "gin"]]
+	ctx.JSON(http.StatusOK, resp)
+[[- else if eq .Framework "fiber"]]
+	return ctx.Status(http.StatusOK).JSON(resp)
+[[- end]]
+}
+
+[[- if eq .Framework "echo"]]
+func SuccessPagination(ctx echo.Context, code int, message string, pagination models.PaginationOutput, data interface{}) error {
+[[- else if eq .Framework "gin"]]
+func SuccessPagination(ctx *gin.Context, code int, message string, pagination models.PaginationOutput, data interface{}) {
+[[- else if eq .Framework "fiber"]]
+func SuccessPagination(ctx *fiber.Ctx, code int, message string, pagination models.PaginationOutput, data interface{}) error {
+[[- end]]
+
+[[- if eq .Framework "echo"]]
+	requestID, _ := ctx.Get("X-Request-ID").(string)
+	timestamp, _ := ctx.Get("X-Timestamp").(string)
+[[- else if eq .Framework "gin"]]
+	requestID := ctx.GetString("X-Request-ID")
+	timestamp := ctx.GetString("X-Timestamp")
+[[- else if eq .Framework "fiber"]]
+	requestID, _ := ctx.Locals("X-Request-ID").(string)
+	timestamp, _ := ctx.Locals("X-Timestamp").(string)
+[[- end]]
+
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	if timestamp == "" {
+		timestamp = time.Now().Format(time.RFC3339)
+	}
+
+	if message == "" {
+		message = "Request has been successfully processed."
+	}
+
+	resp := models.Response{
+		Code:       code,
+		Status:     "OK",
+		Message:    message,
+		Data:       data,
+		Pagination: &pagination,
+		Metadata: models.Metadata{
+			RequestId: requestID,
+			Timestamp: timestamp,
+		},
+	}
+
+[[- if eq .Framework "echo"]]
+	return ctx.JSON(http.StatusOK, resp)
+[[- else if eq .Framework "gin"]]
+	ctx.JSON(http.StatusOK, resp)
+[[- else if eq .Framework "fiber"]]
+	return ctx.Status(http.StatusOK).JSON(resp)
+[[- end]]
+}

@@ -27,6 +27,9 @@ type Config struct {
 	// Tracing
 	UseOTel bool // OpenTelemetry
 
+	// Metrics
+	UsePrometheus bool // Prometheus
+
 	// Auth
 	UseJWT bool
 

@@ -1,0 +1,67 @@
+// stringc (stringcustom) is a custom string helper package
+package stringc
+
+import "unicode"
+
+// ContainsAlphabet checks if a string contains any alphabet characters
+// Example:
+//
+//	stringc.ContainsAlphabet("abc123") // returns true
+//	stringc.ContainsAlphabet("123")    // returns false
+func ContainsAlphabet(s string) bool {
+	for _, r := range s {
+		if unicode.IsLetter(r) {
+			return true
+		}
+	}
+	return false
+}
+
+// SlicesToInterfaces converts a slice of strings to a slice of interfaces
+// Example:
+//
+//	stringc.SlicesToInterfaces([]string{"abc", "def"}) // returns []interface{}{"abc", "def"}
+func SlicesToInterfaces(args []string) []interface{} {
+	result := make([]interface{}, len(args))
+	for i, v := range args {
+		result[i] = v
+	}
+	return result
+}
+
+// ToSnakeCase converts CamelCase to snake_case.
+func ToSnakeCase(s string) string {
+	var result strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) && i > 0 {
+			result.WriteRune('_')
+		}
+		result.WriteRune(unicode.ToLower(r))
+	}
+	return result.String()
+}
+
+// ToCamelCase converts snake_case to CamelCase.
+func ToCamelCase(s string) string {
+	parts := strings.Split(s, "_")
+	for i, p := range parts {
+		if len(p) > 0 {
+			parts[i] = strings.ToUpper(p[:1]) + p[1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// Mask masks the local part of an email address.
+func Mask(mask string) string {
+	parts := strings.Split(mask, "@")
+	if len(parts) != 2 {
+		return mask
+	}
+	local := parts[0]
+	if len(local) <= 2 {
+		return "***@" + parts[1]
+	}
+	masked := string(local[0]) + strings.Repeat("*", len(local)-2) + string(local[len(local)-1])
+	return masked + "@" + parts[1]
+}

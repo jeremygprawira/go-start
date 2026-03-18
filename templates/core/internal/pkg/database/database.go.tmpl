@@ -2,16 +2,23 @@ package database
 
 import (
 	"[[.ModuleName]]/internal/config"
+[[- if .UseGORM ]]
+[[- if or .HasPostgres .HasMySQL ]]
+	"fmt"
+	"time"
+
+	"gorm.io/gorm"
+[[- end ]]
+[[- end ]]
 [[- if .HasPostgres]]
 [[- if .UseGORM]]
-	"gorm.io/gorm"
+	"gorm.io/driver/postgres"
 [[- else]]
 	"github.com/jackc/pgx/v5/pgxpool"
 [[- end]]
 [[- end]]
 [[- if .HasMySQL]]
 [[- if .UseGORM]]
-	"gorm.io/gorm"
 [[- else]]
 	"github.com/jmoiron/sqlx"
 [[- end]]

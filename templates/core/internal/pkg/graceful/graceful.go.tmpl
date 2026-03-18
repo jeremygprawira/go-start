@@ -2,182 +2,112 @@ package graceful
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
-[[- if eq .Framework "echo"]]
-	"github.com/labstack/echo/v4"
-[[- else if eq .Framework "gin"]]
-	"net/http"
-[[- else if eq .Framework "fiber"]]
-	"github.com/gofiber/fiber/v2"
-[[- end]]
+	"golang.org/x/sync/errgroup"
 )
 
-// Process is something that can be started and stopped gracefully.
-type Process interface {
-	Start() error
-	Stop(ctx context.Context) error
-}
-
-// FuncProcess wraps a shutdown function as a Process.
-type FuncProcess struct {
-	shutdown func(ctx context.Context) error
-}
-
-func NewFuncProcess(fn func(ctx context.Context) error) *FuncProcess {
-	return &FuncProcess{shutdown: fn}
-}
-
-func (f *FuncProcess) Start() error                       { return nil }
-func (f *FuncProcess) Stop(ctx context.Context) error     { return f.shutdown(ctx) }
-
-[[- if eq .Framework "echo"]]
-// EchoProcess wraps an Echo server as a Process.
-type EchoProcess struct {
-	e    *echo.Echo
-	addr string
-}
-
-func NewEchoProcess(e *echo.Echo, addr string) *EchoProcess {
-	return &EchoProcess{e: e, addr: addr}
-}
-
-func (p *EchoProcess) Start() error {
-	return p.e.Start(p.addr)
-}
-
-func (p *EchoProcess) Stop(ctx context.Context) error {
-	return p.e.Shutdown(ctx)
-}
-[[- else if eq .Framework "gin"]]
-// GinProcess wraps a Gin HTTP server as a Process.
-type GinProcess struct {
-	server *http.Server
-}
-
-func NewGinProcess(handler http.Handler, addr string) *GinProcess {
-	return &GinProcess{server: &http.Server{Addr: addr, Handler: handler}}
-}
-
-func (p *GinProcess) Start() error {
-	return p.server.ListenAndServe()
-}
-
-func (p *GinProcess) Stop(ctx context.Context) error {
-	return p.server.Shutdown(ctx)
-}
-[[- else if eq .Framework "fiber"]]
-// FiberProcess wraps a Fiber app as a Process.
-type FiberProcess struct {
-	app  *fiber.App
-	addr string
-}
-
-func NewFiberProcess(app *fiber.App, addr string) *FiberProcess {
-	return &FiberProcess{app: app, addr: addr}
-}
-
-func (p *FiberProcess) Start() error {
-	return p.app.Listen(p.addr)
-}
-
-func (p *FiberProcess) Stop(ctx context.Context) error {
-	return p.app.ShutdownWithContext(ctx)
-}
-[[- end]]
-
-// Option configures the graceful runner.
-type Option func(*options)
-
-type options struct {
-	timeout      time.Duration
-	logger       Logger
-	startupHook  func()
-	shutdownHook func()
-}
-
-// Logger is a minimal interface for graceful shutdown logging.
-type Logger interface {
-	Info(msg string)
-	Error(msg string)
-}
-
-type LoggerAdapter struct{}
-
-func (l *LoggerAdapter) Info(msg string)  {}
-func (l *LoggerAdapter) Error(msg string) {}
-
-// NewLoggerAdapter creates a no-op logger adapter (replace with your logger).
-func NewLoggerAdapter(instance interface{}, ctx context.Context) Logger {
-	return &LoggerAdapter{}
-}
-
-func WithTimeout(d time.Duration) Option {
-	return func(o *options) { o.timeout = d }
-}
-
-func WithLogger(l Logger) Option {
-	return func(o *options) { o.logger = l }
-}
-
-func WithStartupHook(fn func()) Option {
-	return func(o *options) { o.startupHook = fn }
-}
-
-func WithShutdownHook(fn func()) Option {
-	return func(o *options) { o.shutdownHook = fn }
-}
-
-// Graceful starts all processes and waits for an OS signal to shut them down.
+// Graceful manages the lifecycle of multiple processes with graceful startup and shutdown.
+// It handles signal catching, concurrent process management, and proper cleanup.
+//
+// Processes are started concurrently and must all start successfully before the startup hook runs.
+// On receiving a termination signal (SIGINT/SIGTERM), all processes are stopped concurrently
+// within the configured timeout.
 func Graceful(processes map[string]Process, opts ...Option) {
-	o := &options{
-		timeout: 10 * time.Second,
-		logger:  &LoggerAdapter{},
-	}
+	o := defaultOptions()
 	for _, opt := range opts {
-		opt(o)
+		opt(&o)
 	}
 
-	if o.startupHook != nil {
-		o.startupHook()
-	}
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	errs := make(chan error, len(processes))
-	for _, p := range processes {
-		go func(p Process) {
-			if err := p.Start(); err != nil {
-				errs <- err
-			}
-		}(p)
-	}
-
-	select {
-	case err := <-errs:
-		o.logger.Error("process error: " + err.Error())
-	case <-quit:
-	}
-
-	if o.shutdownHook != nil {
-		o.shutdownHook()
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
+	// Setup signal handling for graceful shutdown
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer cancel()
 
-	var wg sync.WaitGroup
-	for _, p := range processes {
-		wg.Add(1)
-		go func(p Process) {
-			defer wg.Done()
-			p.Stop(ctx)
-		}(p)
+	// Start all processes concurrently
+	startgroup, ctx := errgroup.WithContext(ctx)
+
+	for name, process := range processes {
+		name, process := name, process // Capture loop variables
+		startgroup.Go(func() error {
+			o.logger.Infof("starting %s", name)
+			if err := process.Start(ctx); err != nil {
+				return fmt.Errorf("failed to start %s: %w", name, err)
+			}
+			return nil
+		})
 	}
-	wg.Wait()
+
+	// Wait for all processes to start
+	if err := startgroup.Wait(); err != nil {
+		o.logger.Errorf("error starting processes: %v", err)
+		return // Exit immediately on startup failure
+	}
+
+	// Execute startup hook only if all processes started successfully
+	if hook := o.startupHook; hook != nil {
+		o.logger.Debugf("executing startup hook")
+		hook()
+	}
+
+	// Block until shutdown signal received
+	<-ctx.Done()
+
+	// Execute shutdown hook before beginning shutdown
+	if hook := o.shutdownHook; hook != nil {
+		o.logger.Debugf("executing shutdown hook")
+		hook()
+	}
+
+	o.logger.Infof("received termination signal, shutting down...")
+
+	// Setup periodic logging during shutdown for observability
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				o.logger.Infof("waiting for graceful shutdown...")
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	// Create shutdown context with timeout
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), o.timeout)
+	defer stopCancel()
+
+	// Stop all processes concurrently
+	stopgroup, stopCtx := errgroup.WithContext(stopCtx)
+
+	for name, process := range processes {
+		name, process := name, process // Capture loop variables
+		stopgroup.Go(func() error {
+			o.logger.Infof("stopping %s", name)
+			if err := process.Stop(stopCtx); err != nil {
+				return fmt.Errorf("failed to stop %s: %w", name, err)
+			}
+			o.logger.Infof("stopped %s successfully", name)
+			return nil
+		})
+	}
+
+	// Wait for all processes to stop
+	if err := stopgroup.Wait(); err != nil {
+		o.logger.Errorf("error stopping processes: %v", err)
+	}
+
+	o.logger.Infof("shutdown complete")
 }

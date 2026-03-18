@@ -17,6 +17,10 @@ import (
 	_ "[[.ModuleName]]/docs"
 	fiberSwagger "github.com/gofiber/swagger"
 [[- end]]
+[[- if .UsePrometheus]]
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+[[- end]]
 )
 
 [[- if .UseJWT]]
@@ -32,7 +36,13 @@ func New(app *fiber.App, svc *service.Service, cfg *config.Configuration) {
 		return c.SendString("[[.ServiceName]] is running 🚀")
 	})
 [[- if .UseSwagger]]
+	app.Get("/docs", func(c *fiber.Ctx) error {
+		return c.SendFile("docs/api-docs.html")
+	})
 	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
+[[- end]]
+[[- if .UsePrometheus]]
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 [[- end]]
 
 	// Health

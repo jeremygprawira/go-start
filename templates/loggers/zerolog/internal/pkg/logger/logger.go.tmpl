@@ -2,63 +2,179 @@ package logger
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"time"
 
 	"[[.ModuleName]]/internal/config"
+
 	"github.com/rs/zerolog"
 )
 
-// Logger defines the logging interface.
-type Logger interface {
-	Info(ctx context.Context, msg string, fields ...Field)
-	Error(ctx context.Context, msg string, fields ...Field)
-	Warn(ctx context.Context, msg string, fields ...Field)
-	Debug(ctx context.Context, msg string, fields ...Field)
-	Fatal(ctx context.Context, msg string, fields ...Field)
+// ZerologLogger wraps zerolog.Logger to implement the Logger interface.
+type ZerologLogger struct {
+	logger zerolog.Logger
 }
 
-// Field is a key-value log field.
-type Field struct {
-	Key   string
-	Value interface{}
+// NewZerologLogger creates a new ZerologLogger instance.
+func NewZerologLogger(zl zerolog.Logger) Logger {
+	return &ZerologLogger{logger: zl}
 }
 
-func String(key, val string) Field  { return Field{Key: key, Value: val} }
-func Int(key string, val int) Field { return Field{Key: key, Value: val} }
-func Bool(key string, val bool) Field { return Field{Key: key, Value: val} }
-func Any(key string, val interface{}) Field { return Field{Key: key, Value: val} }
-func Error(err error) Field { return Field{Key: "error", Value: err} }
-
-// Instance is the global logger.
-var Instance Logger
-
-type zeroLogger struct {
-	l zerolog.Logger
+// Debug logs a debug message with automatic context extraction.
+func (z *ZerologLogger) Debug(ctx context.Context, msg string, fields ...Field) {
+	evt := z.logger.Debug()
+	z.appendFields(ctx, evt, fields).Msg(msg)
 }
 
-// Initialize sets up the Zerolog logger.
-func Initialize(cfg *config.Configuration) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	var l zerolog.Logger
-	if cfg.Application.Environment != "production" {
-		l = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
-	} else {
-		l = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	}
-	Instance = &zeroLogger{l: l}
+// Info logs an info message.
+func (z *ZerologLogger) Info(ctx context.Context, msg string, fields ...Field) {
+	evt := z.logger.Info()
+	z.appendFields(ctx, evt, fields).Msg(msg)
 }
 
-func (z *zeroLogger) emit(level zerolog.Level, ctx context.Context, msg string, fields []Field) {
-	evt := z.l.WithLevel(level)
+// Warn logs a warning message.
+func (z *ZerologLogger) Warn(ctx context.Context, msg string, fields ...Field) {
+	evt := z.logger.Warn()
+	z.appendFields(ctx, evt, fields).Msg(msg)
+}
+
+// Error logs an error message.
+func (z *ZerologLogger) Error(ctx context.Context, msg string, fields ...Field) {
+	evt := z.logger.Error()
+	z.appendFields(ctx, evt, fields).Msg(msg)
+}
+
+// Fatal logs a fatal message and exits.
+func (z *ZerologLogger) Fatal(ctx context.Context, msg string, fields ...Field) {
+	evt := z.logger.Fatal()
+	z.appendFields(ctx, evt, fields).Msg(msg)
+}
+
+// With returns a logger with preset fields.
+func (z *ZerologLogger) With(fields ...Field) Logger {
+	ctx := z.logger.With()
 	for _, f := range fields {
-		evt = evt.Interface(f.Key, fmt.Sprintf("%v", f.Value))
+		ctx = appendFieldToContext(ctx, f)
 	}
-	evt.Msg(msg)
+	return &ZerologLogger{logger: ctx.Logger()}
 }
 
-func (z *zeroLogger) Info(ctx context.Context, msg string, fields ...Field)  { z.emit(zerolog.InfoLevel, ctx, msg, fields) }
-func (z *zeroLogger) Error(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.ErrorLevel, ctx, msg, fields) }
-func (z *zeroLogger) Warn(ctx context.Context, msg string, fields ...Field)  { z.emit(zerolog.WarnLevel, ctx, msg, fields) }
-func (z *zeroLogger) Debug(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.DebugLevel, ctx, msg, fields) }
-func (z *zeroLogger) Fatal(ctx context.Context, msg string, fields ...Field) { z.emit(zerolog.FatalLevel, ctx, msg, fields) }
+// WithContext returns a logger with context values extracted and preset.
+func (z *ZerologLogger) WithContext(ctx context.Context) Logger {
+	logCtx := z.logger.With()
+	if requestID := GetRequestID(ctx); requestID != "" {
+		logCtx = logCtx.Str("request_id", requestID)
+	}
+	if userID := GetUserID(ctx); userID != "" {
+		logCtx = logCtx.Str("user_id", userID)
+	}
+	if traceID := GetTraceID(ctx); traceID != "" {
+		logCtx = logCtx.Str("trace_id", traceID)
+	}
+	return &ZerologLogger{logger: logCtx.Logger()}
+}
+
+// appendFields appends both context fields and user fields to the event.
+func (z *ZerologLogger) appendFields(ctx context.Context, evt *zerolog.Event, fields []Field) *zerolog.Event {
+	if ctx != nil {
+		if requestID := GetRequestID(ctx); requestID != "" {
+			evt = evt.Str("request_id", requestID)
+		}
+		if userID := GetUserID(ctx); userID != "" {
+			evt = evt.Str("user_id", userID)
+		}
+		if traceID := GetTraceID(ctx); traceID != "" {
+			evt = evt.Str("trace_id", traceID)
+		}
+	}
+	for _, f := range fields {
+		evt = appendFieldToEvent(evt, f)
+	}
+	return evt
+}
+
+func appendFieldToEvent(evt *zerolog.Event, f Field) *zerolog.Event {
+	switch f.Type {
+	case FieldTypeString:
+		return evt.Str(f.Key, f.Value.(string))
+	case FieldTypeInt:
+		return evt.Int(f.Key, f.Value.(int))
+	case FieldTypeInt64:
+		return evt.Int64(f.Key, f.Value.(int64))
+	case FieldTypeBool:
+		return evt.Bool(f.Key, f.Value.(bool))
+	case FieldTypeError:
+		if err, ok := f.Value.(error); ok {
+			return evt.Err(err)
+		}
+		return evt.Interface(f.Key, f.Value)
+	case FieldTypeDuration:
+		if d, ok := f.Value.(time.Duration); ok {
+			return evt.Dur(f.Key, d)
+		}
+		return evt.Interface(f.Key, f.Value)
+	default:
+		return evt.Interface(f.Key, f.Value)
+	}
+}
+
+func appendFieldToContext(zctx zerolog.Context, f Field) zerolog.Context {
+	switch f.Type {
+	case FieldTypeString:
+		return zctx.Str(f.Key, f.Value.(string))
+	case FieldTypeInt:
+		return zctx.Int(f.Key, f.Value.(int))
+	case FieldTypeInt64:
+		return zctx.Int64(f.Key, f.Value.(int64))
+	case FieldTypeBool:
+		return zctx.Bool(f.Key, f.Value.(bool))
+	case FieldTypeError:
+		if err, ok := f.Value.(error); ok {
+			return zctx.Err(err)
+		}
+		return zctx.Interface(f.Key, f.Value)
+	case FieldTypeDuration:
+		if d, ok := f.Value.(time.Duration); ok {
+			return zctx.Dur(f.Key, d)
+		}
+		return zctx.Interface(f.Key, f.Value)
+	default:
+		return zctx.Interface(f.Key, f.Value)
+	}
+}
+
+// Log is the raw zerolog.Logger instance.
+var Log zerolog.Logger
+
+// Initialize configures and initializes the global logger based on environment.
+func Initialize(configuration *config.Configuration) {
+	isProduction := configuration.Application.Environment == "prod" ||
+		configuration.Application.Environment == "production"
+
+	zerolog.TimeFieldFormat = time.RFC3339Nano
+
+	if isProduction {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		Log = zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
+	} else {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+		Log = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
+	}
+
+	Instance = NewZerologLogger(Log)
+
+	if isProduction {
+		Log.Info().
+			Str("environment", configuration.Application.Environment).
+			Str("encoding", "json").
+			Str("level", "info").
+			Msg("Logger initialized in production mode")
+	} else {
+		Log.Info().
+			Str("environment", configuration.Application.Environment).
+			Str("encoding", "console").
+			Str("level", "debug").
+			Msg("Logger initialized in development mode")
+	}
+}

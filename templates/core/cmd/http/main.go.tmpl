@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	// Run the application and handle any startup errors
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Application failed: %v\n", err)
 		os.Exit(1)
@@ -20,6 +21,7 @@ func main() {
 }
 
 func run() error {
+	// 1. Initialize configuration first (before any dependencies)
 	ctx := context.Background()
 
 	cfg, err := config.Initialize(ctx)
@@ -27,6 +29,7 @@ func run() error {
 		panic(fmt.Errorf("failed to initialize configuration: %w", err))
 	}
 
+	// 2. Setup application core, from logger, to echo server, database, etc.
 	server, err := core.Setup(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to setup application: %w", err)
@@ -34,14 +37,17 @@ func run() error {
 
 	port := fmt.Sprintf(":%d", cfg.Application.Port)
 
+	// 3. Define processes to manage
 	processes := map[string]graceful.Process{
 		"http-server": graceful.New[[title .Framework]]Process(server, port),
 		"cleanup":     graceful.NewFuncProcess(core.Teardown),
 	}
 
+	// 4. Configure graceful shutdown
 	shutdownTimeout := 10 * time.Second
 	logAdapter := graceful.NewLoggerAdapter(logger.Instance, ctx)
 
+	// 5. Run with graceful lifecycle management
 	graceful.Graceful(processes,
 		graceful.WithTimeout(shutdownTimeout),
 		graceful.WithLogger(logAdapter),

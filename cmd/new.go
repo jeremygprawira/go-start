@@ -37,8 +37,17 @@ func runNew(cmd *cobra.Command, args []string) {
 	exitOnErr(err)
 	cfg.ServiceName = name
 
-	// ─── 2. Go Module Name ──────────────────────────────────────────────────
-	module, err := promptText("Go Module Name", fmt.Sprintf("github.com/yourname/%s", name), func(input string) error {
+	// ─── 2. GitHub Username/Org ─────────────────────────────────────────────
+	owner, err := promptText("GitHub Username/Org", "yourname", func(input string) error {
+		if len(input) == 0 {
+			return fmt.Errorf("username/org cannot be empty")
+		}
+		return nil
+	})
+	exitOnErr(err)
+
+	// ─── 3. Go Module Name ──────────────────────────────────────────────────
+	module, err := promptText("Go Module Name", fmt.Sprintf("github.com/%s/%s", owner, name), func(input string) error {
 		if len(input) == 0 {
 			return fmt.Errorf("module name cannot be empty")
 		}
@@ -47,12 +56,12 @@ func runNew(cmd *cobra.Command, args []string) {
 	exitOnErr(err)
 	cfg.ModuleName = module
 
-	// ─── 3. Framework ───────────────────────────────────────────────────────
+	// ─── 4. Framework ───────────────────────────────────────────────────────
 	_, framework, err := promptSelect("HTTP Framework", []string{"echo", "gin", "fiber"})
 	exitOnErr(err)
 	cfg.Framework = framework
 
-	// ─── 4. Databases (multi-select) ────────────────────────────────────────
+	// ─── 5. Databases (multi-select) ────────────────────────────────────────
 	dbChoices := []string{"PostgreSQL", "MySQL", "MongoDB", "Redis"}
 	selectedDBs, err := ui.PromptMultiSelect("Select Databases", dbChoices)
 	exitOnErr(err)
@@ -70,14 +79,14 @@ func runNew(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// ─── 5. ORM (only for SQL DBs) ──────────────────────────────────────────
+	// ─── 6. ORM (only for SQL DBs) ──────────────────────────────────────────
 	if cfg.HasPostgres || cfg.HasMySQL {
 		_, orm, err := promptSelect("Database Access Layer", []string{"GORM (ORM)", "Raw SQL (pgx / sqlx)"})
 		exitOnErr(err)
 		cfg.UseGORM = orm == "GORM (ORM)"
 	}
 
-	// ─── 6. Migration Tool (only for SQL DBs) ───────────────────────────────
+	// ─── 7. Migration Tool (only for SQL DBs) ───────────────────────────────
 	if cfg.HasPostgres || cfg.HasMySQL {
 		_, migration, err := promptSelect("Migration Tool", []string{"goose", "golang-migrate", "none"})
 		exitOnErr(err)
@@ -86,7 +95,7 @@ func runNew(cmd *cobra.Command, args []string) {
 		cfg.MigrationTool = "none"
 	}
 
-	// ─── 7. Logger ──────────────────────────────────────────────────────────
+	// ─── 8. Logger ──────────────────────────────────────────────────────────
 	_, logger, err := promptSelect("Logger", []string{"zap", "zerolog", "logrus", "slog (stdlib)"})
 	exitOnErr(err)
 	if logger == "slog (stdlib)" {
@@ -94,17 +103,22 @@ func runNew(cmd *cobra.Command, args []string) {
 	}
 	cfg.Logger = logger
 
-	// ─── 8. Tracing ─────────────────────────────────────────────────────────
+	// ─── 9. Tracing ─────────────────────────────────────────────────────────
 	_, tracing, err := promptSelect("Distributed Tracing", []string{"OpenTelemetry (OTLP/gRPC)", "none"})
 	exitOnErr(err)
 	cfg.UseOTel = tracing == "OpenTelemetry (OTLP/gRPC)"
 
-	// ─── 9. Auth ────────────────────────────────────────────────────────────
+	// ─── 10. Metrics ────────────────────────────────────────────────────────
+	_, metrics, err := promptSelect("Metrics & Monitoring", []string{"Prometheus", "none"})
+	exitOnErr(err)
+	cfg.UsePrometheus = metrics == "Prometheus"
+
+	// ─── 11. Auth ───────────────────────────────────────────────────────────
 	_, auth, err := promptSelect("Authentication", []string{"JWT", "none"})
 	exitOnErr(err)
 	cfg.UseJWT = auth == "JWT"
 
-	// ─── 10. Swagger ────────────────────────────────────────────────────────
+	// ─── 11. Swagger ────────────────────────────────────────────────────────
 	_, swagger, err := promptSelect("API Documentation", []string{"Swagger (swaggo)", "none"})
 	exitOnErr(err)
 	cfg.UseSwagger = swagger == "Swagger (swaggo)"

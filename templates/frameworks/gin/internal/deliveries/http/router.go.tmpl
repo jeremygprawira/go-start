@@ -18,6 +18,9 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	swaggerFiles "github.com/swaggo/files"
 [[- end]]
+[[- if .UsePrometheus]]
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+[[- end]]
 )
 
 [[- if .UseJWT]]
@@ -32,7 +35,13 @@ func New(r *gin.Engine, svc *service.Service, cfg *config.Configuration) {
 		c.String(http.StatusOK, "[[.ServiceName]] is running 🚀")
 	})
 [[- if .UseSwagger]]
+	r.GET("/docs", func(c *gin.Context) {
+		c.File("docs/api-docs.html")
+	})
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+[[- end]]
+[[- if .UsePrometheus]]
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 [[- end]]
 
 	// Health

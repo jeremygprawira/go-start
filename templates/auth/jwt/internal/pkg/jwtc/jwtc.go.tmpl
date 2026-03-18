@@ -1,73 +1,47 @@
+// jwtc (jwtcustom) is a custom jwt helper package
 package jwtc
 
 import (
-	"errors"
+	"[[.ModuleName]]/internal/config"
 	"time"
 
-	"[[.ModuleName]]/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Configuration holds JWT issuer and token settings.
-type Configuration struct {
-	Issuer          string
-	AccessSecret    string
-	AccessDuration  time.Duration
-	RefreshSecret   string
-	RefreshDuration time.Duration
-}
+// ============================================================================
+// JWT Token Generation
+// ============================================================================
 
-// Claims extends standard JWT claims with custom fields.
+// JWTClaims represents the claims embedded in the JWT token
 type Claims struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID        int    `json:"user_id"`
+	Email         string `json:"email"`
+	PhoneNumber   string `json:"phone_number"`
+	AccountNumber string `json:"account_number"`
+	TokenType     string `json:"token_type"` // "access" or "refresh"
 	jwt.RegisteredClaims
 }
 
-// DefaultConfig builds a JWT configuration from app config.
-func DefaultConfig(cfg *config.Configuration) *Configuration {
-	accessDur, _ := time.ParseDuration(cfg.Authorization.Access.Duration)
-	refreshDur, _ := time.ParseDuration(cfg.Authorization.Refresh.Duration)
+// JWTConfig holds the configuration for JWT token generation
+type Configuration struct {
+	AccessTokenSecret    string
+	AccessTokenDuration  time.Duration
+	RefreshTokenSecret   string
+	RefreshTokenDuration time.Duration
+	Issuer               string
+}
+
+// DefaultJWTConfig returns a default JWT configuration
+// WARNING: You should override SecretKey from environment variables in production
+func DefaultConfig(config *config.Configuration) *Configuration {
+	accessTokenDuration, _ := time.ParseDuration(config.Authorization.Access.Duration)
+	refreshTokenDuration, _ := time.ParseDuration(config.Authorization.Refresh.Duration)
+
 	return &Configuration{
-		Issuer:          cfg.Authorization.Issuer,
-		AccessSecret:    cfg.Authorization.Access.Secret,
-		AccessDuration:  accessDur,
-		RefreshSecret:   cfg.Authorization.Refresh.Secret,
-		RefreshDuration: refreshDur,
+		AccessTokenSecret:    config.Authorization.Access.Secret,
+		AccessTokenDuration:  accessTokenDuration,
+		RefreshTokenSecret:   config.Authorization.Refresh.Secret,
+		RefreshTokenDuration: refreshTokenDuration,
+		Issuer:               config.Authorization.Issuer,
 	}
-}
-
-// GenerateAccessToken creates a signed access JWT.
-func (c *Configuration) GenerateAccessToken(userID, email, role string) (string, error) {
-	claims := &Claims{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    c.Issuer,
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(c.AccessDuration)),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(c.AccessSecret))
-}
-
-// ParseAccessToken validates and parses an access JWT.
-func (c *Configuration) ParseAccessToken(tokenStr string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return []byte(c.AccessSecret), nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-	return claims, nil
 }

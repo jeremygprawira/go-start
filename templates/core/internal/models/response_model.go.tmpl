@@ -1,18 +1,43 @@
 package models
 
 // MetaResponse holds pagination / metadata for list responses.
-type MetaResponse struct {
-	Page      int   `json:"page"`
-	PerPage   int   `json:"per_page"`
-	Total     int64 `json:"total"`
-	TotalPage int   `json:"total_page"`
+type (
+	PaginationOutput struct {
+		Prev  string
+		Next  string
+		Total int
+		Limit int
+	}
+	ErrorResponse struct {
+		Code     int         `json:"code"`
+		Status   string      `json:"status"`
+		Message  string      `json:"message"`
+		Errors   interface{} `json:"errors,omitempty"`
+		Metadata Metadata    `json:"metadata"`
+	}
+
+	Response struct {
+		Code       int               `json:"code" example:"200"`
+		Status     string            `json:"status" example:"OK"`
+		Message    string            `json:"message" example:"Request has been successfully processed."`
+		Data       interface{}       `json:"data,omitempty"`
+		Pagination *PaginationOutput `json:"pagination,omitempty"`
+		Errors     interface{}       `json:"errors,omitempty"`
+		Metadata   Metadata          `json:"metadata"`
+	}
+	Metadata struct {
+		RequestId string `json:"requestId"`
+		Timestamp string `json:"timestamp"`
+		TotalRows int    `json:"totalRows,omitempty"`
+	}
+)
+
+type ErrorValidationResponse struct {
+	Code    string `json:"code"`
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
-// Response is the standard API response envelope.
-type Response struct {
-	Status  int         `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Meta    interface{} `json:"meta,omitempty"`
-	Error   interface{} `json:"error,omitempty"`
+func (e ErrorValidationResponse) Error() string {
+	return fmt.Sprintf("code: %s, field: %s, message: %s", e.Code, e.Field, e.Message)
 }

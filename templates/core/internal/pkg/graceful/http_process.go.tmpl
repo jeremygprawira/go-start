@@ -1,0 +1,141 @@
+package graceful
+
+import (
+	"context"
+	"errors"
+	"net/http"
+
+[[- if eq .Framework "echo" ]]
+	"github.com/labstack/echo/v4"
+[[- else if eq .Framework "fiber" ]]
+	"github.com/gofiber/fiber/v2"
+[[- end ]]
+)
+
+[[- if eq .Framework "echo" ]]
+// EchoProcess wraps an Echo server to implement the Process interface.
+type EchoProcess struct {
+	server *echo.Echo
+	addr   string
+}
+
+// NewEchoProcess creates a new Echo process wrapper.
+func NewEchoProcess(server *echo.Echo, addr string) *EchoProcess {
+	return &EchoProcess{
+		server: server,
+		addr:   addr,
+	}
+}
+
+// Start starts the Echo server and blocks until it stops or context is cancelled.
+func (p *EchoProcess) Start(ctx context.Context) error {
+	errChan := make(chan error, 1)
+
+	go func() {
+		if err := p.server.Start(p.addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errChan <- err
+		}
+		close(errChan)
+	}()
+
+	// Wait for either server error or context cancellation
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
+}
+
+// Stop gracefully shuts down the Echo server.
+func (p *EchoProcess) Stop(ctx context.Context) error {
+	return p.server.Shutdown(ctx)
+}
+
+[[- else if eq .Framework "gin" ]]
+// GinProcess wraps a Gin HTTP server to implement the Process interface.
+type GinProcess struct {
+	server *http.Server
+}
+
+// NewGinProcess creates a new Gin process wrapper.
+func NewGinProcess(handler http.Handler, addr string) *GinProcess {
+	return &GinProcess{
+		server: &http.Server{Addr: addr, Handler: handler},
+	}
+}
+
+// Start starts the Gin server and blocks until it stops or context is cancelled.
+func (p *GinProcess) Start(ctx context.Context) error {
+	errChan := make(chan error, 1)
+
+	go func() {
+		if err := p.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errChan <- err
+		}
+		close(errChan)
+	}()
+
+	// Wait for either server error or context cancellation
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
+}
+
+// Stop gracefully shuts down the Gin server.
+func (p *GinProcess) Stop(ctx context.Context) error {
+	return p.server.Shutdown(ctx)
+}
+
+[[- else if eq .Framework "fiber" ]]
+// FiberProcess wraps a Fiber app to implement the Process interface.
+type FiberProcess struct {
+	app  *fiber.App
+	addr string
+}
+
+// NewFiberProcess creates a new Fiber process wrapper.
+func NewFiberProcess(app *fiber.App, addr string) *FiberProcess {
+	return &FiberProcess{
+		app:  app,
+		addr: addr,
+	}
+}
+
+// Start starts the Fiber server and blocks until it stops or context is cancelled.
+func (p *FiberProcess) Start(ctx context.Context) error {
+	errChan := make(chan error, 1)
+
+	go func() {
+		if err := p.app.Listen(p.addr); err != nil {
+			errChan <- err
+		}
+		close(errChan)
+	}()
+
+	// Wait for either server error or context cancellation
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
+}
+
+// Stop gracefully shuts down the Fiber server.
+func (p *FiberProcess) Stop(ctx context.Context) error {
+	return p.app.ShutdownWithContext(ctx)
+}
+[[- end ]]

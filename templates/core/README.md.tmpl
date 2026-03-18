@@ -12,6 +12,7 @@ A production-ready Go REST API built with **[[.Framework | upper]]** and clean a
 | Logger | [[.Logger | title]] |
 | Auth | [[- if .UseJWT]]JWT[[- else]]None[[- end]] |
 | Tracing | [[- if .UseOTel]]OpenTelemetry[[- else]]None[[- end]] |
+| Metrics | [[- if .UsePrometheus]]Prometheus[[- else]]None[[- end]] |
 
 ## Project Structure
 
@@ -56,9 +57,13 @@ A production-ready Go REST API built with **[[.Framework | upper]]** and clean a
    ```
 [[- if .UseSwagger]]
 
-5. API docs:
+5. API docs (Scalar UI):
    ```
-   GET http://localhost:8080/swagger/index.html
+   GET http://localhost:8080/docs
+   ```
+   Swagger JSON:
+   ```
+   GET http://localhost:8080/swagger/doc.json
    ```
 [[- end]]
 

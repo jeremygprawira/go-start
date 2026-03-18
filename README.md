@@ -27,8 +27,9 @@
 - 🔄 **ORM flexibility** — GORM or Raw SQL (pgx / sqlx) per SQL database
 - 📦 **4 loggers** — Zap, Zerolog, Logrus, or slog (stdlib), all behind a unified interface
 - 🔬 **Distributed tracing** — OpenTelemetry (OTLP/gRPC) optional
+- 📈 **Metrics** — Native Prometheus endpoint (`/metrics`) supported
 - 🔐 **JWT auth** — access + refresh tokens, middleware wired per framework
-- 📖 **Swagger** — swaggo annotations + route registered (per framework)
+- 📖 **Swagger** — swaggo annotations + beautifully rendered using Scalar API UI
 - 🐳 **Docker ready** — Dockerfile, docker-compose with only your chosen database services
 - 🔃 **Migrations** — Goose or golang-migrate SQL files scaffolded automatically
 - 📝 **Dynamic go.mod** — only imports libraries matching your selections
@@ -45,6 +46,7 @@
 | **Migration Tool** *(SQL DBs)* | `goose` · `golang-migrate` · `none` |
 | **Logger** | `zap` · `zerolog` · `logrus` · `slog` |
 | **Tracing** | `OpenTelemetry` · `none` |
+| **Metrics** | `Prometheus` · `none` |
 | **Auth** | `JWT` · `none` |
 | **Swagger** | `yes` · `no` |
 
@@ -102,6 +104,7 @@ You'll walk through a series of prompts:
 ? Migration Tool: goose
 ? Logger: zap
 ? Distributed Tracing: none
+? Metrics & Monitoring: Prometheus
 ? Authentication: JWT
 ? API Documentation: Swagger (swaggo)
 
@@ -114,6 +117,7 @@ You'll walk through a series of prompts:
   │  Migrations:     goose                    │
   │  Logger:         zap                      │
   │  Tracing:        none                     │
+  │  Metrics:        Prometheus               │
   │  Auth:           JWT                      │
   │  Swagger:        yes (swaggo)             │
   └───────────────────────────────────────────┘
@@ -188,7 +192,10 @@ my-api/
 │   │   ├── validator/              # go-playground/validator wrapper
 │   │   ├── errorc/                 # structured AppError type
 │   │   ├── response/               # framework-specific response helpers
-│   │   ├── formatter/              # string/email formatters
+│   │   ├── formatter/              # string/email/phone formatters
+│   │   ├── stringc/                # string manipulation utilities
+│   │   ├── numberc/                # numeric helpers
+│   │   ├── boolc/                  # boolean pointer tools
 │   │   └── generator/              # UUID + token generators
 │   ├── repository/
 │   │   ├── main_repository.go      # Repository aggregator
@@ -315,7 +322,8 @@ After generation, the following routes are registered out of the box:
 |--------|------|------|-------------|
 | `GET` | `/` | — | Root ping |
 | `GET` | `/health` | — | Health check |
-| `GET` | `/swagger/*` | — | Swagger UI *(if enabled)* |
+| `GET` | `/docs` | — | Scalar API UI *(if swagger enabled)* |
+| `GET` | `/metrics` | — | Prometheus metrics *(if enabled)* |
 | `POST` | `/api/v1/users` | API Key | Create user |
 | `GET` | `/api/v1/users/:id` | API Key + JWT | Get user by ID |
 | `PUT` | `/api/v1/users/:id` | API Key + JWT | Update user |
@@ -359,7 +367,9 @@ After generation, the following routes are registered out of the box:
 | [github.com/sirupsen/logrus](https://github.com/sirupsen/logrus) | Logrus logger |
 | [github.com/golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT auth |
 | [go.opentelemetry.io/otel](https://opentelemetry.io/) | OpenTelemetry tracing |
+| [github.com/prometheus/client_golang](https://github.com/prometheus/client_golang) | Prometheus metrics |
 | [github.com/swaggo/swag](https://github.com/swaggo/swag) | Swagger docs |
+| [github.com/scalar/api-reference](https://scalar.com) | Scalar API UI |
 | [github.com/spf13/viper](https://github.com/spf13/viper) | Config loader |
 | [github.com/spf13/cobra](https://github.com/spf13/cobra) | CLI framework |
 

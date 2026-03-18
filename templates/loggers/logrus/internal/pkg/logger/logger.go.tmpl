@@ -5,61 +5,131 @@ import (
 	"os"
 
 	"[[.ModuleName]]/internal/config"
+
 	"github.com/sirupsen/logrus"
 )
 
-// Logger defines the logging interface.
-type Logger interface {
-	Info(ctx context.Context, msg string, fields ...Field)
-	Error(ctx context.Context, msg string, fields ...Field)
-	Warn(ctx context.Context, msg string, fields ...Field)
-	Debug(ctx context.Context, msg string, fields ...Field)
-	Fatal(ctx context.Context, msg string, fields ...Field)
+// LogrusLogger wraps logrus.Logger to implement the Logger interface.
+type LogrusLogger struct {
+	entry *logrus.Entry
 }
 
-// Field is a key-value log field.
-type Field struct {
-	Key   string
-	Value interface{}
+// NewLogrusLogger creates a new LogrusLogger instance.
+func NewLogrusLogger(entry *logrus.Entry) Logger {
+	return &LogrusLogger{entry: entry}
 }
 
-func String(key, val string) Field  { return Field{Key: key, Value: val} }
-func Int(key string, val int) Field { return Field{Key: key, Value: val} }
-func Bool(key string, val bool) Field { return Field{Key: key, Value: val} }
-func Any(key string, val interface{}) Field { return Field{Key: key, Value: val} }
-func Error(err error) Field { return Field{Key: "error", Value: err} }
-
-//  Instance is the global logger.
-var Instance Logger
-
-type logrusLogger struct {
-	l *logrus.Logger
+// Debug logs a debug message.
+func (l *LogrusLogger) Debug(ctx context.Context, msg string, fields ...Field) {
+	l.buildEntry(ctx, fields).Debug(msg)
 }
 
-// Initialize sets up the Logrus logger.
-func Initialize(cfg *config.Configuration) {
-	l := logrus.New()
-	l.SetOutput(os.Stdout)
-	if cfg.Application.Environment == "production" {
-		l.SetFormatter(&logrus.JSONFormatter{})
-		l.SetLevel(logrus.InfoLevel)
+// Info logs an info message.
+func (l *LogrusLogger) Info(ctx context.Context, msg string, fields ...Field) {
+	l.buildEntry(ctx, fields).Info(msg)
+}
+
+// Warn logs a warning message.
+func (l *LogrusLogger) Warn(ctx context.Context, msg string, fields ...Field) {
+	l.buildEntry(ctx, fields).Warn(msg)
+}
+
+// Error logs an error message.
+func (l *LogrusLogger) Error(ctx context.Context, msg string, fields ...Field) {
+	l.buildEntry(ctx, fields).Error(msg)
+}
+
+// Fatal logs a fatal message and exits.
+func (l *LogrusLogger) Fatal(ctx context.Context, msg string, fields ...Field) {
+	l.buildEntry(ctx, fields).Fatal(msg)
+}
+
+// With returns a logger with preset fields.
+func (l *LogrusLogger) With(fields ...Field) Logger {
+	return &LogrusLogger{entry: l.entry.WithFields(convertLogrusFields(fields))}
+}
+
+// WithContext returns a logger with context values extracted and preset.
+func (l *LogrusLogger) WithContext(ctx context.Context) Logger {
+	f := logrus.Fields{}
+	if requestID := GetRequestID(ctx); requestID != "" {
+		f["request_id"] = requestID
+	}
+	if userID := GetUserID(ctx); userID != "" {
+		f["user_id"] = userID
+	}
+	if traceID := GetTraceID(ctx); traceID != "" {
+		f["trace_id"] = traceID
+	}
+	return &LogrusLogger{entry: l.entry.WithFields(f)}
+}
+
+func (l *LogrusLogger) buildEntry(ctx context.Context, fields []Field) *logrus.Entry {
+	f := convertLogrusFields(fields)
+	if ctx != nil {
+		if requestID := GetRequestID(ctx); requestID != "" {
+			f["request_id"] = requestID
+		}
+		if userID := GetUserID(ctx); userID != "" {
+			f["user_id"] = userID
+		}
+		if traceID := GetTraceID(ctx); traceID != "" {
+			f["trace_id"] = traceID
+		}
+	}
+	return l.entry.WithFields(f)
+}
+
+func convertLogrusFields(fields []Field) logrus.Fields {
+	lf := make(logrus.Fields, len(fields))
+	for _, f := range fields {
+		if f.Type == FieldTypeError {
+			if err, ok := f.Value.(error); ok {
+				lf[f.Key] = err.Error()
+				continue
+			}
+		}
+		lf[f.Key] = f.Value
+	}
+	return lf
+}
+
+// Log is the raw logrus.Logger instance.
+var Log *logrus.Logger
+
+// Initialize configures and initializes the global logger based on environment.
+func Initialize(configuration *config.Configuration) {
+	Log = logrus.New()
+	Log.SetOutput(os.Stdout)
+	Log.SetReportCaller(true)
+
+	isProduction := configuration.Application.Environment == "prod" ||
+		configuration.Application.Environment == "production"
+
+	if isProduction {
+		Log.SetFormatter(&logrus.JSONFormatter{})
+		Log.SetLevel(logrus.InfoLevel)
 	} else {
-		l.SetFormatter(&logrus.TextFormatter{FullTimestamp: true, ForceColors: true})
-		l.SetLevel(logrus.DebugLevel)
+		Log.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp: true,
+			ForceColors:   true,
+		})
+		Log.SetLevel(logrus.DebugLevel)
 	}
-	Instance = &logrusLogger{l: l}
-}
 
-func (lg *logrusLogger) toFields(fields []Field) logrus.Fields {
-	f := make(logrus.Fields, len(fields))
-	for _, field := range fields {
-		f[field.Key] = field.Value
+	Instance = NewLogrusLogger(logrus.NewEntry(Log))
+
+	if isProduction {
+		Log.WithFields(logrus.Fields{
+			"environment": configuration.Application.Environment,
+			"encoding":    "json",
+			"level":       "info",
+		}).Info("Logger initialized in production mode")
+	} else {
+		Log.WithFields(logrus.Fields{
+			"environment": configuration.Application.Environment,
+			"encoding":    "console",
+			"level":       "debug",
+		}).Info("Logger initialized in development mode")
 	}
-	return f
 }
-
-func (lg *logrusLogger) Info(ctx context.Context, msg string, fields ...Field)  { lg.l.WithFields(lg.toFields(fields)).Info(msg) }
-func (lg *logrusLogger) Error(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Error(msg) }
-func (lg *logrusLogger) Warn(ctx context.Context, msg string, fields ...Field)  { lg.l.WithFields(lg.toFields(fields)).Warn(msg) }
-func (lg *logrusLogger) Debug(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Debug(msg) }
-func (lg *logrusLogger) Fatal(ctx context.Context, msg string, fields ...Field) { lg.l.WithFields(lg.toFields(fields)).Fatal(msg) }

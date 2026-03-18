@@ -2,14 +2,20 @@ package database
 
 import (
 	"fmt"
+	"[[.ModuleName]]/internal/config"
+[[- if .UseGORM ]]
 	"time"
 
-	"[[.ModuleName]]/internal/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+[[- else ]]
+	"github.com/jmoiron/sqlx"
+	_ "github.com/go-sql-driver/mysql"
+[[- end ]]
 )
 
+[[- if .UseGORM ]]
 // ConnectToMySQL creates a GORM-managed MySQL connection.
 func ConnectToMySQL(cfg *config.Configuration) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
@@ -40,3 +46,26 @@ func ConnectToMySQL(cfg *config.Configuration) (*gorm.DB, error) {
 
 	return db, nil
 }
+[[- else ]]
+// ConnectToMySQL creates a sqlx-managed MySQL connection pool.
+func ConnectToMySQL(cfg *config.Configuration) (*sqlx.DB, error) {
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
+		cfg.MySQL.User,
+		cfg.MySQL.Password,
+		cfg.MySQL.Host,
+		cfg.MySQL.Port,
+		cfg.MySQL.Name,
+	)
+
+	db, err := sqlx.Connect("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
+	}
+
+	db.SetMaxIdleConns(cfg.MySQL.MaxIdleConns)
+	db.SetMaxOpenConns(cfg.MySQL.MaxOpenConns)
+
+	return db, nil
+}
+[[- end ]]

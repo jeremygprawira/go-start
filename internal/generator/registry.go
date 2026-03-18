@@ -17,12 +17,44 @@ func buildRegistry(cfg *Config) []FileSpec {
 		{SrcTemplate: "core/internal/models/response_model.go.tmpl", DstPath: "[[.ServiceName]]/internal/models/response_model.go"},
 		{SrcTemplate: "core/internal/models/health_model.go.tmpl", DstPath: "[[.ServiceName]]/internal/models/health_model.go"},
 		{SrcTemplate: "core/internal/models/user_model.go.tmpl", DstPath: "[[.ServiceName]]/internal/models/user_model.go"},
+		{SrcTemplate: "core/internal/models/token_model.go.tmpl", DstPath: "[[.ServiceName]]/internal/models/token_model.go"},
+		{SrcTemplate: "core/internal/pkg/boolc/boolc.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/boolc/boolc.go"},
+		{SrcTemplate: "core/internal/pkg/errorc/model.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/errorc/model.go"},
+		{SrcTemplate: "core/internal/pkg/formatter/phone_number.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/formatter/phone_number.go"},
+		{SrcTemplate: "core/internal/pkg/generator/account_number.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/account_number.go"},
+		{SrcTemplate: "core/internal/pkg/generator/account_number_test.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/account_number_test.go"},
+		{SrcTemplate: "core/internal/pkg/generator/hash.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/hash.go"},
+		{SrcTemplate: "core/internal/pkg/generator/hash_test.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/hash_test.go"},
+		{SrcTemplate: "core/internal/pkg/generator/jwt.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/jwt.go"},
+		{SrcTemplate: "core/internal/pkg/generator/jwt_test.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/jwt_test.go"},
+		{SrcTemplate: "core/internal/pkg/generator/token.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/token.go"},
+		{SrcTemplate: "core/internal/pkg/generator/token_test.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/token_test.go"},
+		{SrcTemplate: "core/internal/pkg/numberc/numberc.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/numberc/numberc.go"},
+		{SrcTemplate: "core/internal/pkg/response/error_response.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/response/error_response.go"},
+		{SrcTemplate: "core/internal/pkg/response/success_response.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/response/success_response.go"},
+		{SrcTemplate: "core/internal/pkg/stringc/stringc.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/stringc/stringc.go"},
+		{SrcTemplate: "core/internal/pkg/validator/account_number.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/account_number.go"},
+		{SrcTemplate: "core/internal/pkg/validator/account_number_test.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/account_number_test.go"},
+		{SrcTemplate: "core/internal/pkg/validator/hash.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/hash.go"},
+		{SrcTemplate: "core/internal/pkg/validator/jwt.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/jwt.go"},
+		{SrcTemplate: "core/internal/pkg/validator/jwt_test.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/jwt_test.go"},
+		{SrcTemplate: "core/internal/pkg/validator/password.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/password.go"},
+		{SrcTemplate: "core/internal/pkg/validator/phone_number.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/phone_number.go"},
+		{SrcTemplate: "core/internal/pkg/validator/rest.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/rest.go"},
+		{SrcTemplate: "core/internal/pkg/validator/validation_mapper.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/validation_mapper.go"},
 		{SrcTemplate: "core/internal/pkg/graceful/graceful.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/graceful.go"},
-		{SrcTemplate: "core/internal/pkg/validator/validator.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/validator/validator.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/process.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/process.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/options.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/options.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/logger.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/logger.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/logger_adapter.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/logger_adapter.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/func_process.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/func_process.go"},
+		{SrcTemplate: "core/internal/pkg/graceful/http_process.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/graceful/[[.Framework]]_process.go"},
 		{SrcTemplate: "core/internal/pkg/errorc/errorc.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/errorc/errorc.go"},
-		{SrcTemplate: "core/internal/pkg/response/response.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/response/response.go"},
 		{SrcTemplate: "core/internal/pkg/formatter/formatter.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/formatter/formatter.go"},
-		{SrcTemplate: "core/internal/pkg/generator/generator.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/generator/generator.go"},
+		{SrcTemplate: "core/internal/pkg/logger/logger.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/logger/logger.go"},
+		{SrcTemplate: "core/internal/pkg/logger/context.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/logger/context.go"},
+		{SrcTemplate: "core/internal/pkg/logger/error.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/logger/error.go"},
+		{SrcTemplate: "core/internal/pkg/logger/masking.go.tmpl", DstPath: "[[.ServiceName]]/internal/pkg/logger/masking.go"},
 		{SrcTemplate: "core/internal/repository/main_repository.go.tmpl", DstPath: "[[.ServiceName]]/internal/repository/main_repository.go"},
 		{SrcTemplate: "core/internal/service/main_service.go.tmpl", DstPath: "[[.ServiceName]]/internal/service/main_service.go"},
 		{SrcTemplate: "core/internal/service/health_service.go.tmpl", DstPath: "[[.ServiceName]]/internal/service/health_service.go"},
@@ -114,31 +146,6 @@ func buildRegistry(cfg *Config) []FileSpec {
 			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/middleware.go",
 			Condition:   isGin,
 		},
-		{
-			SrcTemplate: "frameworks/gin/internal/deliveries/http/middleware/cors.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/cors.go",
-			Condition:   isGin,
-		},
-		{
-			SrcTemplate: "frameworks/gin/internal/deliveries/http/middleware/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/logger.go",
-			Condition:   isGin,
-		},
-		{
-			SrcTemplate: "frameworks/gin/internal/deliveries/http/middleware/recover.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/recover.go",
-			Condition:   isGin,
-		},
-		{
-			SrcTemplate: "frameworks/gin/internal/deliveries/http/middleware/api_key.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/api_key.go",
-			Condition:   isGin,
-		},
-		{
-			SrcTemplate: "frameworks/gin/internal/deliveries/http/middleware/jwt.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/jwt.go",
-			Condition:   func(c *Config) bool { return isGin(c) && c.UseJWT },
-		},
 
 		// ─── Framework: Fiber ───────────────────────────────────────────────
 		{
@@ -166,37 +173,12 @@ func buildRegistry(cfg *Config) []FileSpec {
 			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/middleware.go",
 			Condition:   isFiber,
 		},
-		{
-			SrcTemplate: "frameworks/fiber/internal/deliveries/http/middleware/cors.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/cors.go",
-			Condition:   isFiber,
-		},
-		{
-			SrcTemplate: "frameworks/fiber/internal/deliveries/http/middleware/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/logger.go",
-			Condition:   isFiber,
-		},
-		{
-			SrcTemplate: "frameworks/fiber/internal/deliveries/http/middleware/recover.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/recover.go",
-			Condition:   isFiber,
-		},
-		{
-			SrcTemplate: "frameworks/fiber/internal/deliveries/http/middleware/api_key.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/api_key.go",
-			Condition:   isFiber,
-		},
-		{
-			SrcTemplate: "frameworks/fiber/internal/deliveries/http/middleware/jwt.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/deliveries/http/middleware/jwt.go",
-			Condition:   func(c *Config) bool { return isFiber(c) && c.UseJWT },
-		},
 
-		// ─── Database: PostgreSQL + GORM ────────────────────────────────────
+		// ─── Database: PostgreSQL Connections ───────────────────────────────
 		{
-			SrcTemplate: "databases/postgres_gorm/internal/pkg/database/postgres.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/postgres.go",
-			Condition:   func(c *Config) bool { return c.HasPostgres && c.UseGORM },
+			SrcTemplate: "core/internal/pkg/database/postgre_database.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/pkg/database/postgre_database.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres },
 		},
 		{
 			SrcTemplate: "databases/postgres_gorm/internal/repository/pgsql/main_pgsql_repository.go.tmpl",
@@ -219,76 +201,31 @@ func buildRegistry(cfg *Config) []FileSpec {
 			Condition:   func(c *Config) bool { return c.HasPostgres && c.UseGORM },
 		},
 
-		// ─── Database: PostgreSQL + Raw (pgx) ───────────────────────────────
-		{
-			SrcTemplate: "databases/postgres_raw/internal/pkg/database/postgres.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/postgres.go",
-			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
-		},
-		{
-			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/main_pgsql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/main_pgsql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
-		},
-		{
-			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/health_pgsql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/health_pgsql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
-		},
-		{
-			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/user_pgsql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/user_pgsql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
-		},
+		// ─── Database: PostgreSQL + Raw (pgx) Repositories ──────────────────
 
-		// ─── Database: MySQL + GORM ─────────────────────────────────────────
+		// ─── Database: MySQL Connections ────────────────────────────────────
 		{
-			SrcTemplate: "databases/mysql_gorm/internal/pkg/database/mysql.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/mysql.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
+			SrcTemplate: "core/internal/pkg/database/mysql_database.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/pkg/database/mysql_database.go",
+			Condition:   func(c *Config) bool { return c.HasMySQL },
 		},
 		{
 			SrcTemplate: "databases/mysql_gorm/internal/repository/mysql/main_mysql_repository.go.tmpl",
 			DstPath:     "[[.ServiceName]]/internal/repository/mysql/main_mysql_repository.go",
 			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
 		},
-		{
-			SrcTemplate: "databases/mysql_gorm/internal/repository/mysql/health_mysql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/mysql/health_mysql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
-		},
-		{
-			SrcTemplate: "databases/mysql_gorm/internal/repository/mysql/user_mysql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/mysql/user_mysql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
-		},
 
-		// ─── Database: MySQL + Raw (sqlx) ───────────────────────────────────
-		{
-			SrcTemplate: "databases/mysql_raw/internal/pkg/database/mysql.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/mysql.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
-		},
+		// ─── Database: MySQL + Raw (sqlx) Repositories ──────────────────────
 		{
 			SrcTemplate: "databases/mysql_raw/internal/repository/mysql/main_mysql_repository.go.tmpl",
 			DstPath:     "[[.ServiceName]]/internal/repository/mysql/main_mysql_repository.go",
 			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
 		},
-		{
-			SrcTemplate: "databases/mysql_raw/internal/repository/mysql/health_mysql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/mysql/health_mysql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
-		},
-		{
-			SrcTemplate: "databases/mysql_raw/internal/repository/mysql/user_mysql_repository.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/repository/mysql/user_mysql_repository.go",
-			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
-		},
 
 		// ─── Database: MongoDB ──────────────────────────────────────────────
 		{
-			SrcTemplate: "databases/mongodb/internal/pkg/database/mongo.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/mongo.go",
+			SrcTemplate: "core/internal/pkg/database/mongo_database.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/pkg/database/mongo_database.go",
 			Condition:   func(c *Config) bool { return c.HasMongoDB },
 		},
 		{
@@ -309,8 +246,8 @@ func buildRegistry(cfg *Config) []FileSpec {
 
 		// ─── Database: Redis ────────────────────────────────────────────────
 		{
-			SrcTemplate: "databases/redis/internal/pkg/database/redis.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/database/redis.go",
+			SrcTemplate: "core/internal/pkg/database/redis_database.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/pkg/database/redis_database.go",
 			Condition:   func(c *Config) bool { return c.HasRedis },
 		},
 		{
@@ -329,22 +266,27 @@ func buildRegistry(cfg *Config) []FileSpec {
 		// ─── Logger ─────────────────────────────────────────────────────────
 		{
 			SrcTemplate: "loggers/zap/internal/pkg/logger/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/logger/logger.go",
+			DstPath:     "[[.ServiceName]]/internal/pkg/logger/zap.go",
+			Condition:   func(c *Config) bool { return c.Logger == "zap" },
+		},
+		{
+			SrcTemplate: "loggers/zap/internal/pkg/logger/logger_bench_test.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/pkg/logger/zap_bench_test.go",
 			Condition:   func(c *Config) bool { return c.Logger == "zap" },
 		},
 		{
 			SrcTemplate: "loggers/zerolog/internal/pkg/logger/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/logger/logger.go",
+			DstPath:     "[[.ServiceName]]/internal/pkg/logger/zerolog.go",
 			Condition:   func(c *Config) bool { return c.Logger == "zerolog" },
 		},
 		{
 			SrcTemplate: "loggers/logrus/internal/pkg/logger/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/logger/logger.go",
+			DstPath:     "[[.ServiceName]]/internal/pkg/logger/logrus.go",
 			Condition:   func(c *Config) bool { return c.Logger == "logrus" },
 		},
 		{
 			SrcTemplate: "loggers/slog/internal/pkg/logger/logger.go.tmpl",
-			DstPath:     "[[.ServiceName]]/internal/pkg/logger/logger.go",
+			DstPath:     "[[.ServiceName]]/internal/pkg/logger/slog.go",
 			Condition:   func(c *Config) bool { return c.Logger == "slog" },
 		},
 
@@ -366,6 +308,11 @@ func buildRegistry(cfg *Config) []FileSpec {
 		{
 			SrcTemplate: "swagger/docs/docs.go.tmpl",
 			DstPath:     "[[.ServiceName]]/docs/docs.go",
+			Condition:   func(c *Config) bool { return c.UseSwagger },
+		},
+		{
+			SrcTemplate: "swagger/docs/api-docs.html.tmpl",
+			DstPath:     "[[.ServiceName]]/docs/api-docs.html",
 			Condition:   func(c *Config) bool { return c.UseSwagger },
 		},
 

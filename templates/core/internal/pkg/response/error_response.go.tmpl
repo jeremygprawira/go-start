@@ -1,0 +1,139 @@
+package response
+
+import (
+	"fmt"
+	"time"
+
+	"[[.ModuleName]]/internal/models"
+	"[[.ModuleName]]/internal/pkg/errorc"
+	"[[.ModuleName]]/internal/pkg/stringc"
+
+	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
+	
+[[- if eq .Framework "echo"]]
+	"github.com/labstack/echo/v4"
+[[- else if eq .Framework "gin"]]
+	"github.com/gin-gonic/gin"
+[[- else if eq .Framework "fiber"]]
+	"github.com/gofiber/fiber/v2"
+[[- end]]
+)
+
+[[- if eq .Framework "echo"]]
+func Error(ctx echo.Context, err error, message ...string) error {
+[[- else if eq .Framework "gin"]]
+func Error(ctx *gin.Context, err error, message ...string) {
+[[- else if eq .Framework "fiber"]]
+func Error(ctx *fiber.Ctx, err error, message ...string) error {
+[[- end]]
+	var response models.Response
+
+	if err == nil {
+		errorcResponse := errorc.GetResponse(errorc.ErrorInternalServer)
+		response = models.Response{
+			Code:    errorcResponse.Code,
+			Status:  errorcResponse.Status,
+			Message: errorcResponse.Message,
+		}
+	} else {
+		errorcResponse := errorc.GetResponse(err)
+
+		var finalMessage string
+		switch len(message) {
+		case 0:
+			finalMessage = errorcResponse.Message
+		case 1:
+			finalMessage = message[0]
+		default:
+			finalMessage = fmt.Sprintf(message[0], stringc.SlicesToInterfaces(message[1:])...)
+		}
+
+		response = models.Response{
+			Code:    errorcResponse.Code,
+			Status:  errorcResponse.Status,
+			Message: finalMessage,
+		}
+	}
+
+[[- if eq .Framework "echo"]]
+	requestID, _ := ctx.Get("X-Request-ID").(string)
+	timestamp, _ := ctx.Get("X-Timestamp").(string)
+[[- else if eq .Framework "gin"]]
+	requestID := ctx.GetString("X-Request-ID")
+	timestamp := ctx.GetString("X-Timestamp")
+[[- else if eq .Framework "fiber"]]
+	requestID, _ := ctx.Locals("X-Request-ID").(string)
+	timestamp, _ := ctx.Locals("X-Timestamp").(string)
+[[- end]]
+
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	if timestamp == "" {
+		timestamp = time.Now().Format(time.RFC3339)
+	}
+
+	response.Metadata = models.Metadata{
+		RequestId: requestID,
+		Timestamp: timestamp,
+	}
+
+[[- if eq .Framework "echo"]]
+	return ctx.JSON(response.Code, response)
+[[- else if eq .Framework "gin"]]
+	ctx.JSON(response.Code, response)
+[[- else if eq .Framework "fiber"]]
+	return ctx.Status(response.Code).JSON(response)
+[[- end]]
+}
+
+[[- if eq .Framework "echo"]]
+func ErrorValidation(ctx echo.Context, errors interface{}) error {
+[[- else if eq .Framework "gin"]]
+func ErrorValidation(ctx *gin.Context, errors interface{}) {
+[[- else if eq .Framework "fiber"]]
+func ErrorValidation(ctx *fiber.Ctx, errors interface{}) error {
+[[- end]]
+
+[[- if eq .Framework "echo"]]
+	requestID, _ := ctx.Get("X-Request-ID").(string)
+	timestamp, _ := ctx.Get("X-Timestamp").(string)
+[[- else if eq .Framework "gin"]]
+	requestID := ctx.GetString("X-Request-ID")
+	timestamp := ctx.GetString("X-Timestamp")
+[[- else if eq .Framework "fiber"]]
+	requestID, _ := ctx.Locals("X-Request-ID").(string)
+	timestamp, _ := ctx.Locals("X-Timestamp").(string)
+[[- end]]
+
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	if timestamp == "" {
+		timestamp = time.Now().Format(time.RFC3339)
+	}
+
+	errorcResponse := errorc.GetResponse(errorc.ErrorValidation)
+	response := models.Response{
+		Code:    errorcResponse.Code,
+		Status:  errorcResponse.Status,
+		Message: errorcResponse.Message,
+		Metadata: models.Metadata{
+			RequestId: requestID,
+			Timestamp: timestamp,
+		},
+	}
+
+	if data, ok := errors.(*multierror.Error); ok {
+		response.Errors = data.Errors
+	}
+
+[[- if eq .Framework "echo"]]
+	return ctx.JSON(response.Code, response)
+[[- else if eq .Framework "gin"]]
+	ctx.JSON(response.Code, response)
+[[- else if eq .Framework "fiber"]]
+	return ctx.Status(response.Code).JSON(response)
+[[- end]]
+}

@@ -1,8 +1,17 @@
 package models
 
 // HealthStatus represents the health check response body.
-type HealthStatus struct {
-	Status    string            `json:"status"`
-	Version   string            `json:"version"`
-	Services  map[string]string `json:"services,omitempty"`
-}
+type (
+	HealthResponse struct {
+		Description  string                 `json:"description"`
+		Dependencies []HealthDetailResponse `json:"dependencies"`
+	}
+
+	HealthDetailResponse struct {
+		Type        string `json:"type"`
+		Component   string `json:"component"`
+		Status      string `json:"status"`
+		Description string `json:"description,omitempty"`
+	}
+)
+

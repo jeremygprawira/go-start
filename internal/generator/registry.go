@@ -202,6 +202,31 @@ func buildRegistry(cfg *Config) []FileSpec {
 		},
 
 		// ─── Database: PostgreSQL + Raw (pgx) Repositories ──────────────────
+		{
+			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/main_pgsql_repository.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/main_pgsql_repository.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
+		},
+		{
+			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/health_pgsql_repository.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/health_pgsql_repository.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
+		},
+		{
+			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/user_pgsql_repository.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/user_pgsql_repository.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
+		},
+		{
+			SrcTemplate: "databases/postgres_raw/internal/repository/pgsql/user_pg_query.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/user_pg_query.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres && !c.UseGORM },
+		},
+		{
+			SrcTemplate: "databases/postgres_gorm/internal/repository/pgsql/user_pg_query.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/pgsql/user_pg_query.go",
+			Condition:   func(c *Config) bool { return c.HasPostgres && c.UseGORM },
+		},
 
 		// ─── Database: MySQL Connections ────────────────────────────────────
 		{
@@ -214,11 +239,21 @@ func buildRegistry(cfg *Config) []FileSpec {
 			DstPath:     "[[.ServiceName]]/internal/repository/mysql/main_mysql_repository.go",
 			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
 		},
+		{
+			SrcTemplate: "databases/mysql_gorm/internal/repository/mysql/user_msql_query.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/mysql/user_msql_query.go",
+			Condition:   func(c *Config) bool { return c.HasMySQL && c.UseGORM },
+		},
 
 		// ─── Database: MySQL + Raw (sqlx) Repositories ──────────────────────
 		{
 			SrcTemplate: "databases/mysql_raw/internal/repository/mysql/main_mysql_repository.go.tmpl",
 			DstPath:     "[[.ServiceName]]/internal/repository/mysql/main_mysql_repository.go",
+			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
+		},
+		{
+			SrcTemplate: "databases/mysql_raw/internal/repository/mysql/user_msql_query.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/mysql/user_msql_query.go",
 			Condition:   func(c *Config) bool { return c.HasMySQL && !c.UseGORM },
 		},
 
@@ -241,6 +276,11 @@ func buildRegistry(cfg *Config) []FileSpec {
 		{
 			SrcTemplate: "databases/mongodb/internal/repository/mongo/user_mongo_repository.go.tmpl",
 			DstPath:     "[[.ServiceName]]/internal/repository/mongo/user_mongo_repository.go",
+			Condition:   func(c *Config) bool { return c.HasMongoDB },
+		},
+		{
+			SrcTemplate: "databases/mongodb/internal/repository/mongo/user_mongo_query.go.tmpl",
+			DstPath:     "[[.ServiceName]]/internal/repository/mongo/user_mongo_query.go",
 			Condition:   func(c *Config) bool { return c.HasMongoDB },
 		},
 

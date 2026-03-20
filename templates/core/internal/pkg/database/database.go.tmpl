@@ -4,22 +4,17 @@ import (
 	"[[.ModuleName]]/internal/config"
 [[- if .UseGORM ]]
 [[- if or .HasPostgres .HasMySQL ]]
-	"fmt"
-	"time"
-
+	
 	"gorm.io/gorm"
 [[- end ]]
 [[- end ]]
 [[- if .HasPostgres]]
-[[- if .UseGORM]]
-	"gorm.io/driver/postgres"
-[[- else]]
+[[- if not .UseGORM]]
 	"github.com/jackc/pgx/v5/pgxpool"
 [[- end]]
 [[- end]]
 [[- if .HasMySQL]]
-[[- if .UseGORM]]
-[[- else]]
+[[- if not .UseGORM]]
 	"github.com/jmoiron/sqlx"
 [[- end]]
 [[- end]]

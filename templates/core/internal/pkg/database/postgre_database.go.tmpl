@@ -25,10 +25,19 @@ func ConnectToPostgreSQL(config *config.Configuration) (*gorm.DB, error) {
 		config.PostgreSQL.Port,
 		config.PostgreSQL.SSLMode)
 
+	// Silence GORM's built-in logger in production to avoid raw SQL leaking into
+	// logs. In any other environment (local, staging) use Info level so developers
+	// retain full query visibility.
+	gormLogLevel := logger.Info
+	if config.Application.Environment == "production" {
+		gormLogLevel = logger.Silent
+	}
+
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  connection,
 		PreferSimpleProtocol: true, // disables implicit prepared statement usage
 	}), &gorm.Config{
+		Logger: logger.Default.LogMode(gormLogLevel),
 		NowFunc: func() time.Time {
 			loc, err := time.LoadLocation(config.Application.Timezone)
 			if err != nil {

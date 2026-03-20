@@ -1,27 +1,14 @@
-package mysql
+package pgsql
 
 import (
 	"context"
 
 	"[[.ModuleName]]/internal/models"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// MySQLRepository aggregates all MySQL repositories.
-type MySQLRepository struct {
-	Health HealthRepository
-	User   UserRepository
-}
-
-func New(db *sqlx.DB) *MySQLRepository {
-	return &MySQLRepository{
-		Health: NewHealthRepository(db),
-		User:   NewUserRepository(db),
-	}
-}
-
-// HealthRepository handles db health check.
+// HealthRepository handles health check queries.
 type HealthRepository interface {
 	Ping(ctx context.Context) error
 }
@@ -35,26 +22,30 @@ type UserRepository interface {
 	GetCredentialsByEmailOrPhoneNumber(ctx context.Context, email string, phoneNumber string) (*models.User, error)
 }
 
-type healthRepository struct{ db *sqlx.DB }
+// ─── Health ─────────────────────────────────────────────────────────────────
 
-func NewHealthRepository(db *sqlx.DB) HealthRepository {
+type healthRepository struct{ db *pgxpool.Pool }
+
+func NewHealthRepository(db *pgxpool.Pool) HealthRepository {
 	return &healthRepository{db: db}
 }
 
 func (r *healthRepository) Ping(ctx context.Context) error {
-	return r.db.PingContext(ctx)
+	return r.db.Ping(ctx)
 }
 
-type userRepository struct{ db *sqlx.DB }
+// ─── User ────────────────────────────────────────────────────────────────────
 
-func NewUserRepository(db *sqlx.DB) UserRepository {
+type userRepository struct{ db *pgxpool.Pool }
+
+func NewUserRepository(db *pgxpool.Pool) UserRepository {
 	return &userRepository{db: db}
 }
 
 func (ur *userRepository) Create(ctx context.Context, user *models.User) error {
-	_, err := ur.db.ExecContext(ctx,
+	_, err := ur.db.Exec(ctx,
 		`INSERT INTO users (id, account_number, name, email, phone_number, phone_country_code, password)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		user.ID, user.AccountNumber, user.Name, user.Email, user.PhoneNumber, user.PhoneCountryCode, user.Password,
 	)
 	return err
@@ -62,9 +53,11 @@ func (ur *userRepository) Create(ctx context.Context, user *models.User) error {
 
 func (ur *userRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
-	err := ur.db.GetContext(ctx, &user,
-		`SELECT id, account_number, name, email, phone_number, phone_country_code, created_at, updated_at FROM users WHERE id = ?`, id)
-	if err != nil {
+	row := ur.db.QueryRow(ctx,
+		`SELECT id, account_number, name, email, phone_number, phone_country_code, created_at, updated_at FROM users WHERE id = $1`,
+		id,
+	)
+	if err := row.Scan(&user.ID, &user.AccountNumber, &user.Name, &user.Email, &user.PhoneNumber, &user.PhoneCountryCode, &user.CreatedAt, &user.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -72,8 +65,8 @@ func (ur *userRepository) FindByID(ctx context.Context, id string) (*models.User
 
 func (ur *userRepository) CheckByEmailOrPhoneNumber(ctx context.Context, email string, phoneNumber string) (bool, error) {
 	var exists bool
-	err := ur.db.GetContext(ctx, &exists, QueryCheckByEmailOrPhoneNumber, email, email, phoneNumber, phoneNumber)
-	if err != nil {
+	row := ur.db.QueryRow(ctx, QueryCheckByEmailOrPhoneNumber, email, phoneNumber)
+	if err := row.Scan(&exists); err != nil {
 		return false, err
 	}
 	return exists, nil
@@ -81,8 +74,8 @@ func (ur *userRepository) CheckByEmailOrPhoneNumber(ctx context.Context, email s
 
 func (ur *userRepository) GetOneByAccountNumber(ctx context.Context, accountNumber string) (*models.User, error) {
 	var user models.User
-	err := ur.db.GetContext(ctx, &user, QueryGetByAccountNumber, accountNumber)
-	if err != nil {
+	row := ur.db.QueryRow(ctx, QueryGetByAccountNumber, accountNumber)
+	if err := row.Scan(&user.ID, &user.AccountNumber, &user.Name, &user.Email, &user.PhoneNumber, &user.PhoneCountryCode, &user.CreatedAt, &user.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -90,8 +83,8 @@ func (ur *userRepository) GetOneByAccountNumber(ctx context.Context, accountNumb
 
 func (ur *userRepository) GetCredentialsByEmailOrPhoneNumber(ctx context.Context, email string, phoneNumber string) (*models.User, error) {
 	var user models.User
-	err := ur.db.GetContext(ctx, &user, QueryGetCredentialsByEmailOrPhoneNumber, email, email, phoneNumber, phoneNumber)
-	if err != nil {
+	row := ur.db.QueryRow(ctx, QueryGetCredentialsByEmailOrPhoneNumber, email, phoneNumber)
+	if err := row.Scan(&user.ID, &user.AccountNumber, &user.Name, &user.Email, &user.PhoneNumber, &user.PhoneCountryCode, &user.Password); err != nil {
 		return nil, err
 	}
 	return &user, nil

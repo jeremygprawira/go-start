@@ -2,12 +2,16 @@ package service
 
 import (
 	"context"
+[[- if .HasAnyDB ]]
+	"fmt"
+[[- end ]]
+
 	"[[.ModuleName]]/internal/models"
 )
 
 // HealthService defines the health-check interface.
 type HealthService interface {
-	Check(ctx context.Context) (*models.HealthStatus, error)
+	Check(ctx context.Context) (*models.HealthResponse, error)
 }
 
 type healthService struct {
@@ -18,9 +22,95 @@ func NewHealthService(d *Dependencies) HealthService {
 	return &healthService{d: d}
 }
 
-func (s *healthService) Check(ctx context.Context) (*models.HealthStatus, error) {
-	return &models.HealthStatus{
-		Status:  "ok",
-		Version: s.d.Config.Application.Version,
+func (hs *healthService) Check(ctx context.Context) (*models.HealthResponse, error) {
+	var healthDetail []models.HealthDetailResponse
+[[- if .HasPostgres ]]
+
+	var postgreHealth models.HealthDetailResponse
+	postgreErr := hs.d.Repository.Postgre.Health.Check(ctx)
+	if postgreErr != nil {
+		postgreHealth = models.HealthDetailResponse{
+			Type:        models.TYPE_HEALTH,
+			Component:   "PostgreSQL",
+			Status:      "ERROR",
+			Description: fmt.Sprintf("PostgreSQL is not healthy, due to %v", postgreErr),
+		}
+		healthDetail = append(healthDetail, postgreHealth)
+	} else {
+		postgreHealth = models.HealthDetailResponse{
+			Type:      models.TYPE_HEALTH,
+			Component: "PostgreSQL",
+			Status:    "OK",
+		}
+		healthDetail = append(healthDetail, postgreHealth)
+	}
+[[- end ]]
+[[- if .HasMySQL ]]
+
+	var mysqlHealth models.HealthDetailResponse
+	mysqlErr := hs.d.Repository.MySQL.Health.Check(ctx)
+	if mysqlErr != nil {
+		mysqlHealth = models.HealthDetailResponse{
+			Type:        models.TYPE_HEALTH,
+			Component:   "MySQL",
+			Status:      "ERROR",
+			Description: fmt.Sprintf("MySQL is not healthy, due to %v", mysqlErr),
+		}
+		healthDetail = append(healthDetail, mysqlHealth)
+	} else {
+		mysqlHealth = models.HealthDetailResponse{
+			Type:      models.TYPE_HEALTH,
+			Component: "MySQL",
+			Status:    "OK",
+		}
+		healthDetail = append(healthDetail, mysqlHealth)
+	}
+[[- end ]]
+[[- if .HasMongoDB ]]
+
+	var mongoHealth models.HealthDetailResponse
+	mongoErr := hs.d.Repository.Mongo.Health.Check(ctx)
+	if mongoErr != nil {
+		mongoHealth = models.HealthDetailResponse{
+			Type:        models.TYPE_HEALTH,
+			Component:   "MongoDB",
+			Status:      "ERROR",
+			Description: fmt.Sprintf("MongoDB is not healthy, due to %v", mongoErr),
+		}
+		healthDetail = append(healthDetail, mongoHealth)
+	} else {
+		mongoHealth = models.HealthDetailResponse{
+			Type:      models.TYPE_HEALTH,
+			Component: "MongoDB",
+			Status:    "OK",
+		}
+		healthDetail = append(healthDetail, mongoHealth)
+	}
+[[- end ]]
+[[- if .HasRedis ]]
+
+	var redisHealth models.HealthDetailResponse
+	redisErr := hs.d.Repository.Cache.Health.Check(ctx)
+	if redisErr != nil {
+		redisHealth = models.HealthDetailResponse{
+			Type:        models.TYPE_HEALTH,
+			Component:   "Redis",
+			Status:      "ERROR",
+			Description: fmt.Sprintf("Redis is not healthy, due to %v", redisErr),
+		}
+		healthDetail = append(healthDetail, redisHealth)
+	} else {
+		redisHealth = models.HealthDetailResponse{
+			Type:      models.TYPE_HEALTH,
+			Component: "Redis",
+			Status:    "OK",
+		}
+		healthDetail = append(healthDetail, redisHealth)
+	}
+[[- end ]]
+
+	return &models.HealthResponse{
+		Description:  "Service is healthy",
+		Dependencies: healthDetail,
 	}, nil
 }

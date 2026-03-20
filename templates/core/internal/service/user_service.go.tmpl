@@ -26,7 +26,9 @@ func NewUserService(d *Dependencies) UserService {
 
 func (us *userService) Create(ctx context.Context, request *models.CreateUserRequest) (*models.User, error) {
 	// Enrich wide event with business context
-	logger.Add(ctx, "operation", "user_create")
+	logger.Add(ctx, "user", map[string]any{
+		"operation": "create",
+	})
 
 	// Process phone number formatting if provided
 	phoneNumber := request.PhoneNumber.Number

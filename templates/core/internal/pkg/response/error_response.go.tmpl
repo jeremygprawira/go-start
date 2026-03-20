@@ -1,16 +1,19 @@
 package response
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"[[.ModuleName]]/internal/models"
 	"[[.ModuleName]]/internal/pkg/errorc"
+	"[[.ModuleName]]/internal/pkg/logger"
 	"[[.ModuleName]]/internal/pkg/stringc"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	
+
 [[- if eq .Framework "echo"]]
 	"github.com/labstack/echo/v4"
 [[- else if eq .Framework "gin"]]
@@ -53,6 +56,73 @@ func Error(ctx *fiber.Ctx, err error, message ...string) error {
 			Code:    errorcResponse.Code,
 			Status:  errorcResponse.Status,
 			Message: finalMessage,
+		}
+
+		// Log the error securely
+		var httpErr *errorc.HTTPError
+[[- if eq .Framework "echo"]]
+		var fwErr *echo.HTTPError
+[[- else if eq .Framework "fiber"]]
+		var fwErr *fiber.Error
+[[- end]]
+
+		if errors.As(err, &httpErr) {
+			// It's a structured AppError
+			errType := "AppError"
+			var errDetails any
+
+			if httpErr.Internal() != nil {
+				errDetails = httpErr.Internal().Error()
+			}
+
+			if errorcResponse.Code == http.StatusInternalServerError {
+				errType = "InternalError"
+			}
+
+[[- if eq .Framework "echo"]]
+			logger.AddError(ctx.Request().Context(), &logger.ErrorContext{
+[[- else if eq .Framework "gin"]]
+			logger.AddError(ctx.Request.Context(), &logger.ErrorContext{
+[[- else if eq .Framework "fiber"]]
+			logger.AddError(ctx.UserContext(), &logger.ErrorContext{
+[[- end]]
+				Type:    errType,
+				Message: httpErr.Error(), // Always log the public/predefined message
+				Details: errDetails,      // Log the actual internal error here if it exists
+			})
+[[- if eq .Framework "echo"]]
+		} else if errors.As(err, &fwErr) {
+			// Echo framework error (e.g., binding failure)
+			var errDetails any
+			if fwErr.Internal != nil {
+				errDetails = fwErr.Internal.Error()
+			}
+
+			logger.AddError(ctx.Request().Context(), &logger.ErrorContext{
+				Type:    "FrameworkError",
+				Message: fmt.Sprintf("%v", fwErr.Message),
+				Details: errDetails,
+			})
+[[- else if eq .Framework "fiber"]]
+		} else if errors.As(err, &fwErr) {
+			// Fiber framework error (e.g., routing / parsing failure)
+			logger.AddError(ctx.UserContext(), &logger.ErrorContext{
+				Type:    "FrameworkError",
+				Message: fwErr.Message,
+			})
+[[- end]]
+		} else {
+			// It's a raw, unknown error
+[[- if eq .Framework "echo"]]
+			logger.AddError(ctx.Request().Context(), &logger.ErrorContext{
+[[- else if eq .Framework "gin"]]
+			logger.AddError(ctx.Request.Context(), &logger.ErrorContext{
+[[- else if eq .Framework "fiber"]]
+			logger.AddError(ctx.UserContext(), &logger.ErrorContext{
+[[- end]]
+				Type:    "RawError",
+				Message: err.Error(),
+			})
 		}
 	}
 
